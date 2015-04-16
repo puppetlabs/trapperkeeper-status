@@ -20,8 +20,8 @@
    :service-status-version schema/Int
    :status schema/Any})
 
-(def ServiceStatuses
-  {schema/Str [ServiceStatus]})
+(def ServicesStatus
+  {schema/Str ServiceStatus})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
@@ -38,18 +38,22 @@
   (let [status-map (service-status-map svc-version status-version status-fn)]
     (swap! status-fns-atom update-in [svc-name] conj status-map)))
 
-(schema/defn call-status-fns-for-service :- [ServiceStatus]
+(schema/defn call-latest-status-fn-for-service :- ServiceStatus
+  "Given a list of maps containing service information and a status function,
+  find the latest version, and return a map with the service's version, the
+  version of the service's status, and the results of calling this status
+  function."
   [service :- [ServiceInfo]]
-  (for [{:keys [service-version
-                service-status-version
-                status-fn]} service]
-    {:service-version service-version
-     :service-status-version service-status-version
-     :status (status-fn)}))
+  (let [latest-status (last (sort-by :service-status-version service))]
+    {:service-version (:service-version latest-status)
+     :service-status-version (:service-status-version latest-status)
+     :status ((:status-fn latest-status))}))
 
-(schema/defn call-status-fns :- ServiceStatuses
+(schema/defn call-status-fns :- ServicesStatus
   [context]
-  (ks/mapvals call-status-fns-for-service (deref (:status-fns context))))
+  "Call the latest status function for each service in the service context,
+  and return a map of service to service status."
+  (ks/mapvals call-latest-status-fn-for-service (deref (:status-fns context))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Compojure App

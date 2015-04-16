@@ -38,14 +38,11 @@
     (let [req (http-client/get "http://localhost:8180/status/v1/services")
           body (json/parse-string (slurp (:body req)))]
       (is (= 200 (:status req)))
-      (is (= [{"service-version" "0.1.0"
-               "service-status-version" 1
-               "status" "bar status 1"}]
+      (is (= {"service-version" "0.1.0"
+              "service-status-version" 1
+              "status" "bar status 1"}
             (get-in body ["services" "bar"])))
-      (is (= #{{"service-version" "1.1.0"
-                "service-status-version" 1
-                "status" "foo status 1"}
-               {"service-version" "1.1.0"
-                "service-status-version" 2
-                "status" "foo status 2"}}
-            (set (get-in body ["services" "foo"])))))))
+      (is (= {"service-version" "1.1.0"
+              "service-status-version" 2
+              "status" "foo status 2"}
+            (get-in body ["services" "foo"]))))))
