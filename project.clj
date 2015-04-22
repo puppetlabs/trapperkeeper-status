@@ -15,8 +15,7 @@
                  [prismatic/schema "0.4.0"]
                  [ring/ring-json "0.3.1" :exclusions [commons-io]]
                  [puppetlabs/kitchensink ~ks-version]
-                 [puppetlabs/trapperkeeper ~tk-version]
-                 [puppetlabs/trapperkeeper-webserver-jetty9 "1.3.1"]]
+                 [puppetlabs/trapperkeeper ~tk-version]]
 
   :lein-release {:scm         :git
                  :deploy-via  :lein-deploy}
@@ -28,6 +27,7 @@
 
   :profiles {:dev {:dependencies [[puppetlabs/http-client "0.4.4"]
                                   [puppetlabs/trapperkeeper ~tk-version :classifier "test" :scope "test"]
+                                  [puppetlabs/trapperkeeper-webserver-jetty9 "1.3.1"]
                                   [puppetlabs/kitchensink ~ks-version :classifier "test" :scope "test"]]}}
 
   :plugins [[lein-release "1.0.5"]]
