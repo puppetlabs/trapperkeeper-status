@@ -10,6 +10,8 @@
 (def ServiceInfo
   {:service-version schema/Str
    :service-status-version schema/Int
+   ;; TODO: actually specify inputs/outputs of callback function in this
+   ;; schema
    :status-fn (schema/make-fn-schema schema/Any schema/Any)})
 
 (def ServicesInfo
