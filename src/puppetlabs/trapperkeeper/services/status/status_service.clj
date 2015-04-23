@@ -20,7 +20,7 @@
 
   (start [this context]
     (log/info "Registering status service HTTP API at /status")
-    (let [handler (core/build-handler context)]
+    (let [handler (core/build-handler (:status-fns context))]
       (add-ring-handler this (compojure/context "/status" [] handler)))
     context)
 

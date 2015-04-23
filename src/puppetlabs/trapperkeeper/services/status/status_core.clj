@@ -52,22 +52,23 @@
      :status ((:status-fn latest-status))}))
 
 (schema/defn call-status-fns :- ServicesStatus
-  [context]
+  [status-fns-atom]
   "Call the latest status function for each service in the service context,
   and return a map of service to service status."
-  (ks/mapvals call-latest-status-fn-for-service (deref (:status-fns context))))
+  (ks/mapvals call-latest-status-fn-for-service (deref status-fns-atom)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Compojure App
 
-(defn build-routes [context]
+(defn build-routes
+  [status-fns-atom]
   (compojure/routes
     (compojure/context "/v1" []
       (compojure/GET "/services" []
-        (let [statuses (call-status-fns context)]
+        (let [statuses (call-status-fns status-fns-atom)]
           {:status 200
            :body {"services" statuses}})))))
 
-(defn build-handler [context]
-  (-> (build-routes context)
+(defn build-handler [status-fns-atom]
+  (-> (build-routes status-fns-atom)
       ring-json/wrap-json-response))
