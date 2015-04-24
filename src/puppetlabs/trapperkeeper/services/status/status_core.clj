@@ -47,9 +47,8 @@
   function."
   [service :- [ServiceInfo]]
   (let [latest-status (last (sort-by :service-status-version service))]
-    {:service-version (:service-version latest-status)
-     :service-status-version (:service-status-version latest-status)
-     :status ((:status-fn latest-status))}))
+    (assoc (select-keys latest-status [:service-version :service-status-version])
+           :status ((:status-fn latest-status)))))
 
 (schema/defn call-status-fns :- ServicesStatus
   [status-fns-atom]

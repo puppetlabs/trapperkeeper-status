@@ -3,8 +3,7 @@
             [compojure.core :as compojure]
             [puppetlabs.trapperkeeper.core :refer [defservice]]
             [puppetlabs.trapperkeeper.services :refer [service-context]]
-            [puppetlabs.trapperkeeper.services.status.status-core :as core]
-            [puppetlabs.trapperkeeper.services.webrouting.webrouting-service :as webrouting-service]))
+            [puppetlabs.trapperkeeper.services.status.status-core :as core]))
 
 (defprotocol StatusService
   (register-status [this service-name service-version status-version status-fn]
