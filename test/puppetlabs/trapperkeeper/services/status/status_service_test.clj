@@ -24,7 +24,7 @@
     (register-status "bar" "0.1.0" 1 (fn [] "bar status 1"))
     context))
 
-(deftest status-endpoint-test
+(deftest rollup-status-endpoint-test
   (with-app-with-config
     app
     [jetty9-service/jetty9-service
@@ -45,3 +45,27 @@
                      "service-status-version" 2
                      "status" "foo status 2"}}
              (get body "services"))))))
+
+(deftest single-service-status-endpoint-test
+  (with-app-with-config
+    app
+    [jetty9-service/jetty9-service
+     webrouting-service/webrouting-service
+     status-service
+     foo-service]
+    {:webserver {:port 8180
+                 :host "0.0.0.0"}
+     :web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}}
+    (testing "returns service information for service that has registered a callback"
+      (let [req (http-client/get "http://localhost:8180/status/v1/services/foo")]
+        (is (= 200 (:status req)))
+        (is (= {"service-version" "1.1.0"
+                "service-status-version" 2
+                "status" "foo status 2"}
+               (json/parse-string (slurp (:body req)))))))
+    (testing "returns a 404 for service not registered with the status service"
+      (let [req (http-client/get "http://localhost:8180/status/v1/services/notfound")]
+        (is (= 404 (:status req)))
+        (is (= {"error" {"type" "puppetlabs.trapperkeeper.services.status.status-core/service-not-found"
+                         "message" "No status information found for service notfound"}}
+               (json/parse-string (slurp (:body req)))))))))
