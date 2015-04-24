@@ -55,7 +55,9 @@
   [status-fns-atom]
   "Call the latest status function for each service in the service context,
   and return a map of service to service status."
-  (ks/mapvals call-latest-status-fn-for-service (deref status-fns-atom)))
+  (into {} (pmap (fn [[k v]] {k (call-latest-status-fn-for-service v)})
+                 (deref status-fns-atom))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Compojure App
