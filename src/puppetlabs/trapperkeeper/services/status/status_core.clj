@@ -1,6 +1,7 @@
 (ns puppetlabs.trapperkeeper.services.status.status-core
   (:require [schema.core :as schema]
             [compojure.core :as compojure]
+            [compojure.handler :as handler]
             [ring.middleware.json :as ring-json]
             [puppetlabs.kitchensink.core :as ks]))
 
@@ -45,16 +46,17 @@
   find the latest version, and return a map with the service's version, the
   version of the service's status, and the results of calling this status
   function."
-  [service :- [ServiceInfo]]
+  [service :- [ServiceInfo]
+   level]
   (let [latest-status (last (sort-by :service-status-version service))]
     (assoc (select-keys latest-status [:service-version :service-status-version])
-           :status ((:status-fn latest-status)))))
+           :status ((:status-fn latest-status) level))))
 
 (schema/defn call-status-fns :- ServicesStatus
-  [status-fns-atom]
   "Call the latest status function for each service in the service context,
   and return a map of service to service status."
-  (into {} (pmap (fn [[k v]] {k (call-latest-status-fn-for-service v)})
+  [status-fns-atom level]
+  (into {} (pmap (fn [[k v]] {k (call-latest-status-fn-for-service v level)})
                  (deref status-fns-atom))))
 
 
@@ -63,21 +65,23 @@
 
 (defn build-routes
   [status-fns-atom]
-  (compojure/routes
-    (compojure/context "/v1" []
-      (compojure/GET "/services" []
-        (let [statuses (call-status-fns status-fns-atom)]
-          {:status 200
-           :body statuses}))
-       (compojure/GET "/services/:service-name" [service-name]
-         (if-let [service-info (get (deref status-fns-atom) service-name)]
-           (let [status (call-latest-status-fn-for-service service-info)]
-             {:status 200
-              :body (assoc status :service-name service-name)})
-           {:status 404
-            :body {:error {:type :service-not-found
-                           :message (str "No status information found for service "
-                                         service-name)}}})))))
+  (handler/site
+    (compojure/routes
+      (compojure/context "/v1" []
+        (compojure/GET "/services" [:as {params :query-params}]
+          (let [level (params "level" "info")
+                statuses (call-status-fns status-fns-atom level)]
+            {:status 200
+             :body statuses}))
+         (compojure/GET "/services/:service-name" [service-name :as {params :query-params}]
+           (if-let [service-info (get (deref status-fns-atom) service-name)]
+             (let [status (call-latest-status-fn-for-service service-info (params "level" "info"))]
+               {:status 200
+                :body (assoc status :service-name service-name)})
+             {:status 404
+              :body {:error {:type :service-not-found
+                             :message (str "No status information found for service "
+                                           service-name)}}}))))))
 
 (defn build-handler [status-fns-atom]
   (-> (build-routes status-fns-atom)
