@@ -14,6 +14,7 @@
                  [compojure "1.1.8" :exclusions [commons-io org.clojure/tools.macro]]
                  [prismatic/schema "0.4.0"]
                  [ring/ring-json "0.3.1" :exclusions [commons-io]]
+                 [slingshot "0.12.2"]
                  [puppetlabs/kitchensink ~ks-version]
                  [puppetlabs/trapperkeeper ~tk-version]]
 

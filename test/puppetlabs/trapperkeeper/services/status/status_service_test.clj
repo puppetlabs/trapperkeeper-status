@@ -41,10 +41,10 @@
         (is (= 200 (:status req)))
         (is (= {"bar" {"service-version" "0.1.0"
                        "service-status-version" 1
-                       "status" "bar status 1 info"}
+                       "status" "bar status 1 :info"}
                 "foo" {"service-version" "1.1.0"
                        "service-status-version" 2
-                       "status" "foo status 2 info"}}
+                       "status" "foo status 2 :info"}}
                body))))
     (testing "uses status level from query param"
       (let [req (http-client/get "http://localhost:8180/status/v1/services?level=debug")
@@ -52,10 +52,10 @@
         (is (= 200 (:status req)))
         (is (= {"bar" {"service-version" "0.1.0"
                        "service-status-version" 1
-                       "status" "bar status 1 debug"}
+                       "status" "bar status 1 :debug"}
                 "foo" {"service-version" "1.1.0"
                        "service-status-version" 2
-                       "status" "foo status 2 debug"}}
+                       "status" "foo status 2 :debug"}}
                body))))))
 
 (deftest single-service-status-endpoint-test
@@ -73,7 +73,7 @@
         (is (= 200 (:status req)))
         (is (= {"service-version" "1.1.0"
                 "service-status-version" 2
-                "status" "foo status 2 info"
+                "status" "foo status 2 :info"
                 "service-name" "foo"}
                (json/parse-string (slurp (:body req)))))))
     (testing "uses status level query param"
@@ -81,7 +81,7 @@
         (is (= 200 (:status req)))
         (is (= {"service-version" "1.1.0"
                 "service-status-version" 2
-                "status" "foo status 2 critical"
+                "status" "foo status 2 :critical"
                 "service-name" "foo"}
                (json/parse-string (slurp (:body req)))))))
     (testing "returns a 404 for service not registered with the status service"
@@ -89,4 +89,20 @@
         (is (= 404 (:status req)))
         (is (= {"error" {"type" "service-not-found"
                          "message" "No status information found for service notfound"}}
+               (json/parse-string (slurp (:body req)))))))))
+
+(deftest error-handling-test
+  (with-app-with-config
+    app
+    [jetty9-service/jetty9-service
+     webrouting-service/webrouting-service
+     status-service]
+    {:webserver {:port 8180
+                 :host "0.0.0.0"}
+     :web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}}
+    (testing "returns a 400 when an invalid level is queried for"
+      (let [req (http-client/get "http://localhost:8180/status/v1/services?level=bar")]
+        (is (= 400 (:status req)))
+        (is (= {"error" {"type" "request-data-invalid"
+                         "message" "Invalid level: :bar"}}
                (json/parse-string (slurp (:body req)))))))))

@@ -3,17 +3,21 @@
             [compojure.core :as compojure]
             [compojure.handler :as handler]
             [ring.middleware.json :as ring-json]
-            [puppetlabs.kitchensink.core :as ks]))
+            [slingshot.slingshot :refer [throw+]]
+            [puppetlabs.kitchensink.core :as ks]
+            [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
 
+(def ServiceStatusDetailLevel
+  (schema/enum :critical :info :debug))
+
 (def ServiceInfo
   {:service-version schema/Str
    :service-status-version schema/Int
-   ;; TODO: actually specify inputs/outputs of callback function in this
-   ;; schema
-   :status-fn (schema/make-fn-schema schema/Any schema/Any)})
+   ;; TODO: specify output of callback function in this schema?
+   :status-fn (schema/make-fn-schema ServiceStatusDetailLevel schema/Any)})
 
 (def ServicesInfo
   {schema/Str [ServiceInfo]})
@@ -59,6 +63,18 @@
   (into {} (pmap (fn [[k v]] {k (call-latest-status-fn-for-service v level)})
                  (deref status-fns-atom))))
 
+(defn get-status-detail-level
+  "Given a params map from a request, get out the status level and check
+  whether it is valid. If not, throw an error. If no status level was in the
+  params, then default to 'info'."
+  [params]
+  (if-let [level (keyword (params "level"))]
+    (if-not (schema/check ServiceStatusDetailLevel level)
+      level
+      (throw+  {:type :request-data-invalid
+                :message (str "Invalid level: " level)}))
+    :info))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Compojure App
@@ -69,13 +85,14 @@
     (compojure/routes
       (compojure/context "/v1" []
         (compojure/GET "/services" [:as {params :query-params}]
-          (let [level (params "level" "info")
+          (let [level (get-status-detail-level params)
                 statuses (call-status-fns status-fns-atom level)]
             {:status 200
              :body statuses}))
          (compojure/GET "/services/:service-name" [service-name :as {params :query-params}]
            (if-let [service-info (get (deref status-fns-atom) service-name)]
-             (let [status (call-latest-status-fn-for-service service-info (params "level" "info"))]
+             (let [level (get-status-detail-level params)
+                   status (call-latest-status-fn-for-service service-info level)]
                {:status 200
                 :body (assoc status :service-name service-name)})
              {:status 404
@@ -85,4 +102,6 @@
 
 (defn build-handler [status-fns-atom]
   (-> (build-routes status-fns-atom)
+      ringutils/wrap-request-data-errors
+      ringutils/wrap-errors
       ring-json/wrap-json-response))
