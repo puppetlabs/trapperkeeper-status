@@ -11,6 +11,24 @@
 
 (use-fixtures :once schema-test/validate-schemas)
 
+(def status-service-config
+  {:webserver {:port 8180
+               :host "0.0.0.0"}
+   :web-router-service
+     {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}})
+
+(defmacro with-status-service
+  "Macro to start the status service and its dependencies (jetty9 and
+  webrouting service), along with any other services desired."
+  [app services & body]
+  `(with-app-with-config
+    ~app
+    (concat [jetty9-service/jetty9-service
+             webrouting-service/webrouting-service
+             status-service] ~services)
+    status-service-config
+    (do ~@body)))
+
 (defservice foo-service
   [[:StatusService register-status]]
   (init [this context]
@@ -25,16 +43,10 @@
     context))
 
 (deftest rollup-status-endpoint-test
-  (with-app-with-config
+  (with-status-service
     app
-    [jetty9-service/jetty9-service
-     webrouting-service/webrouting-service
-     status-service
-     foo-service
+    [foo-service
      bar-service]
-    {:webserver {:port 8180
-                 :host "0.0.0.0"}
-     :web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}}
     (testing "returns latest status for all services"
       (let [req (http-client/get "http://localhost:8180/status/v1/services")
             body (json/parse-string (slurp (:body req)))]
@@ -59,15 +71,9 @@
                body))))))
 
 (deftest single-service-status-endpoint-test
-  (with-app-with-config
+  (with-status-service
     app
-    [jetty9-service/jetty9-service
-     webrouting-service/webrouting-service
-     status-service
-     foo-service]
-    {:webserver {:port 8180
-                 :host "0.0.0.0"}
-     :web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}}
+    [foo-service]
     (testing "returns service information for service that has registered a callback"
       (let [req (http-client/get "http://localhost:8180/status/v1/services/foo")]
         (is (= 200 (:status req)))
@@ -92,14 +98,7 @@
                (json/parse-string (slurp (:body req)))))))))
 
 (deftest error-handling-test
-  (with-app-with-config
-    app
-    [jetty9-service/jetty9-service
-     webrouting-service/webrouting-service
-     status-service]
-    {:webserver {:port 8180
-                 :host "0.0.0.0"}
-     :web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}}
+  (with-status-service app []
     (testing "returns a 400 when an invalid level is queried for"
       (let [req (http-client/get "http://localhost:8180/status/v1/services?level=bar")]
         (is (= 400 (:status req)))
