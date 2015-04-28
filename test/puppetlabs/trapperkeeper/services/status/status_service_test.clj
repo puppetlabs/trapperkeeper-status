@@ -44,7 +44,7 @@
               "foo" {"service-version" "1.1.0"
                      "service-status-version" 2
                      "status" "foo status 2"}}
-             (get body "services"))))))
+             body)))))
 
 (deftest single-service-status-endpoint-test
   (with-app-with-config

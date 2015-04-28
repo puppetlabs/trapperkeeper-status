@@ -68,7 +68,7 @@
       (compojure/GET "/services" []
         (let [statuses (call-status-fns status-fns-atom)]
           {:status 200
-           :body {"services" statuses}}))
+           :body statuses}))
        (compojure/GET "/services/:service-name" [service-name]
          (if-let [status-info (get (deref status-fns-atom) service-name)]
            (let [status (call-latest-status-fn-for-service status-info)]
