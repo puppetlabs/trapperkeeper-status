@@ -9,7 +9,7 @@
 ;;; Public
 
 (defn wrap-request-data-errors
-  "A rignt middleware that catches slingshot errors of :type
+  "A ring middleware that catches slingshot errors of :type
   :request-dava-invalid and returns a 400."
   [handler]
   (fn [request]
