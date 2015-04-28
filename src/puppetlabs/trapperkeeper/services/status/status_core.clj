@@ -69,7 +69,7 @@
   whether it is valid. If not, throw an error. If no status level was in the
   params, then default to 'info'."
   [params]
-  (if-let [level (keyword (params "level"))]
+  (if-let [level (keyword (params :level))]
     (if-not (schema/check ServiceStatusDetailLevel level)
       level
       (throw+  {:type :request-data-invalid
@@ -82,15 +82,15 @@
 
 (defn build-routes
   [status-fns-atom]
-  (handler/site
+  (handler/api
     (compojure/routes
       (compojure/context "/v1" []
-        (compojure/GET "/services" [:as {params :query-params}]
+        (compojure/GET "/services" [:as {params :params}]
           (let [level (get-status-detail-level params)
                 statuses (call-status-fns (deref status-fns-atom) level)]
             {:status 200
              :body statuses}))
-         (compojure/GET "/services/:service-name" [service-name :as {params :query-params}]
+         (compojure/GET "/services/:service-name" [service-name :as {params :params}]
            (if-let [service-info (get (deref status-fns-atom) service-name)]
              (let [level (get-status-detail-level params)
                    status (call-latest-status-fn-for-service service-info level)]
