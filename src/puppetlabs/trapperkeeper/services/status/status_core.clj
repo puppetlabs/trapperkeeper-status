@@ -68,7 +68,16 @@
       (compojure/GET "/services" []
         (let [statuses (call-status-fns status-fns-atom)]
           {:status 200
-           :body {"services" statuses}})))))
+           :body statuses}))
+       (compojure/GET "/services/:service-name" [service-name]
+         (if-let [service-info (get (deref status-fns-atom) service-name)]
+           (let [status (call-latest-status-fn-for-service service-info)]
+             {:status 200
+              :body (assoc status :service-name service-name)})
+           {:status 404
+            :body {:error {:type :service-not-found
+                           :message (str "No status information found for service "
+                                         service-name)}}})))))
 
 (defn build-handler [status-fns-atom]
   (-> (build-routes status-fns-atom)
