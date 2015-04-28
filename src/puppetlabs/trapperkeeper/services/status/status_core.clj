@@ -70,12 +70,12 @@
           {:status 200
            :body statuses}))
        (compojure/GET "/services/:service-name" [service-name]
-         (if-let [status-info (get (deref status-fns-atom) service-name)]
-           (let [status (call-latest-status-fn-for-service status-info)]
+         (if-let [service-info (get (deref status-fns-atom) service-name)]
+           (let [status (call-latest-status-fn-for-service service-info)]
              {:status 200
               :body (assoc status :service-name service-name)})
            {:status 404
-            :body {:error {:type ::service-not-found
+            :body {:error {:type :service-not-found
                            :message (str "No status information found for service "
                                          service-name)}}})))))
 

@@ -67,6 +67,6 @@
     (testing "returns a 404 for service not registered with the status service"
       (let [req (http-client/get "http://localhost:8180/status/v1/services/notfound")]
         (is (= 404 (:status req)))
-        (is (= {"error" {"type" "puppetlabs.trapperkeeper.services.status.status-core/service-not-found"
+        (is (= {"error" {"type" "service-not-found"
                          "message" "No status information found for service notfound"}}
                (json/parse-string (slurp (:body req)))))))))
