@@ -8,24 +8,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(defn wrap-request-logging
-  "A ring middleware that logs the request."
-  [handler]
-  (fn [{:keys [request-method uri] :as req}]
-    (log/debug "Processing" request-method uri)
-    (log/trace "---------------------------------------------------")
-    (log/trace (ks/pprint-to-string (dissoc req :ssl-client-cert)))
-    (log/trace "---------------------------------------------------")
-    (handler req)))
-
-(defn wrap-response-logging
-  "A ring middleware that logs the response."
-  [handler]
-  (fn [req]
-    (let [resp (handler req)]
-      (log/trace "Computed response:" resp)
-      resp)))
-
 (defn wrap-request-data-errors
   "A rignt middleware that catches slingshot errors of :type
   :request-dava-invalid and returns a 400."
