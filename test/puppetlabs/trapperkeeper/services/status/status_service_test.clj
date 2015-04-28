@@ -61,7 +61,8 @@
         (is (= 200 (:status req)))
         (is (= {"service-version" "1.1.0"
                 "service-status-version" 2
-                "status" "foo status 2"}
+                "status" "foo status 2"
+                "service-name" "foo"}
                (json/parse-string (slurp (:body req)))))))
     (testing "returns a 404 for service not registered with the status service"
       (let [req (http-client/get "http://localhost:8180/status/v1/services/notfound")]
