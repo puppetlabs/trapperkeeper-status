@@ -11,62 +11,97 @@
 
 (use-fixtures :once schema-test/validate-schemas)
 
+(def status-service-config
+  {:webserver {:port 8180
+               :host "0.0.0.0"}
+   :web-router-service
+     {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}})
+
+(defmacro with-status-service
+  "Macro to start the status service and its dependencies (jetty9 and
+  webrouting service), along with any other services desired."
+  [app services & body]
+  `(with-app-with-config
+    ~app
+    (concat [jetty9-service/jetty9-service
+             webrouting-service/webrouting-service
+             status-service] ~services)
+    status-service-config
+    (do ~@body)))
+
 (defservice foo-service
   [[:StatusService register-status]]
   (init [this context]
-    (register-status "foo" "1.1.0" 1 (fn [] "foo status 1"))
-    (register-status "foo" "1.1.0" 2 (fn [] "foo status 2"))
+    (register-status "foo" "1.1.0" 1 (fn [level] (str "foo status 1 " level)))
+    (register-status "foo" "1.1.0" 2 (fn [level] (str "foo status 2 " level)))
     context))
 
 (defservice bar-service
   [[:StatusService register-status]]
   (init [this context]
-    (register-status "bar" "0.1.0" 1 (fn [] "bar status 1"))
+    (register-status "bar" "0.1.0" 1 (fn [level] (str "bar status 1 " level)))
     context))
 
 (deftest rollup-status-endpoint-test
-  (with-app-with-config
+  (with-status-service
     app
-    [jetty9-service/jetty9-service
-     webrouting-service/webrouting-service
-     status-service
-     foo-service
+    [foo-service
      bar-service]
-    {:webserver {:port 8180
-                 :host "0.0.0.0"}
-     :web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}}
-    (let [req (http-client/get "http://localhost:8180/status/v1/services")
-          body (json/parse-string (slurp (:body req)))]
-      (is (= 200 (:status req)))
-      (is (= {"bar" {"service-version" "0.1.0"
-                     "service-status-version" 1
-                     "status" "bar status 1"}
-              "foo" {"service-version" "1.1.0"
-                     "service-status-version" 2
-                     "status" "foo status 2"}}
-             body)))))
+    (testing "returns latest status for all services"
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services")
+            body (json/parse-string (slurp (:body resp)))]
+        (is (= 200 (:status resp)))
+        (is (= {"bar" {"service-version" "0.1.0"
+                       "service-status-version" 1
+                       "status" "bar status 1 :info"}
+                "foo" {"service-version" "1.1.0"
+                       "service-status-version" 2
+                       "status" "foo status 2 :info"}}
+               body))))
+    (testing "uses status level from query param"
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services?level=debug")
+            body (json/parse-string (slurp (:body resp)))]
+        (is (= 200 (:status resp)))
+        (is (= {"bar" {"service-version" "0.1.0"
+                       "service-status-version" 1
+                       "status" "bar status 1 :debug"}
+                "foo" {"service-version" "1.1.0"
+                       "service-status-version" 2
+                       "status" "foo status 2 :debug"}}
+               body))))))
 
 (deftest single-service-status-endpoint-test
-  (with-app-with-config
+  (with-status-service
     app
-    [jetty9-service/jetty9-service
-     webrouting-service/webrouting-service
-     status-service
-     foo-service]
-    {:webserver {:port 8180
-                 :host "0.0.0.0"}
-     :web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}}
+    [foo-service]
     (testing "returns service information for service that has registered a callback"
-      (let [req (http-client/get "http://localhost:8180/status/v1/services/foo")]
-        (is (= 200 (:status req)))
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services/foo")]
+        (is (= 200 (:status resp)))
         (is (= {"service-version" "1.1.0"
                 "service-status-version" 2
-                "status" "foo status 2"
+                "status" "foo status 2 :info"
                 "service-name" "foo"}
-               (json/parse-string (slurp (:body req)))))))
+               (json/parse-string (slurp (:body resp)))))))
+    (testing "uses status level query param"
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services/foo?level=critical")]
+        (is (= 200 (:status resp)))
+        (is (= {"service-version" "1.1.0"
+                "service-status-version" 2
+                "status" "foo status 2 :critical"
+                "service-name" "foo"}
+               (json/parse-string (slurp (:body resp)))))))
     (testing "returns a 404 for service not registered with the status service"
-      (let [req (http-client/get "http://localhost:8180/status/v1/services/notfound")]
-        (is (= 404 (:status req)))
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services/notfound")]
+        (is (= 404 (:status resp)))
         (is (= {"error" {"type" "service-not-found"
                          "message" "No status information found for service notfound"}}
-               (json/parse-string (slurp (:body req)))))))))
+               (json/parse-string (slurp (:body resp)))))))))
+
+(deftest error-handling-test
+  (with-status-service app []
+    (testing "returns a 400 when an invalid level is queried for"
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services?level=bar")]
+        (is (= 400 (:status resp)))
+        (is (= {"error" {"type" "request-data-invalid"
+                         "message" "Invalid level: :bar"}}
+               (json/parse-string (slurp (:body resp)))))))))
