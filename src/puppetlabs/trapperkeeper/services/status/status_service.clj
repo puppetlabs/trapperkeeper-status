@@ -12,15 +12,16 @@
 
 (defservice status-service
   StatusService
-  [[:WebroutingService add-ring-handler]]
+  [[:WebroutingService add-ring-handler get-route]]
 
   (init [this context]
     (assoc context :status-fns (atom {})))
 
   (start [this context]
     (log/info "Registering status service HTTP API at /status")
-    (let [handler (core/build-handler (:status-fns context))]
-      (add-ring-handler this (compojure/context "/status" [] handler)))
+    (let [path (get-route this)
+          handler (core/build-handler (:status-fns context))]
+      (add-ring-handler this (compojure/context path [] handler)))
     context)
 
   (register-status [this service-name service-version status-version status-fn]
