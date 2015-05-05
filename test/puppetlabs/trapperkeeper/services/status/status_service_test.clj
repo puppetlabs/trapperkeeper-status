@@ -102,6 +102,14 @@
                 "status" "foo status 2 :critical"
                 "service-name" "foo"}
                (json/parse-string (slurp (:body resp)))))))
+    (testing "uses service-status-version query param"
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services/foo?service-status-version=1")]
+        (is (= 200 (:status resp)))
+        (is (= {"service-version" "1.1.0"
+                "service-status-version" 1
+                "status" "foo status 1 :info"
+                "service-name" "foo"}
+               (json/parse-string (slurp (:body resp)))))))
     (testing "returns a 404 for service not registered with the status service"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/notfound")]
         (is (= 404 (:status resp)))
@@ -110,10 +118,27 @@
                (json/parse-string (slurp (:body resp)))))))))
 
 (deftest error-handling-test
-  (with-status-service app []
+  (with-status-service app
+    [foo-service]
     (testing "returns a 400 when an invalid level is queried for"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services?level=bar")]
         (is (= 400 (:status resp)))
         (is (= {"error" {"type" "request-data-invalid"
                          "message" "Invalid level: :bar"}}
+               (json/parse-string (slurp (:body resp)))))))
+    (testing "returns a 400 when a non-integer status-version is queried for"
+      (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
+                                       "services/foo?service-status-version=abc"))]
+        (is (= 400 (:status resp)))
+        (is (= {"error" {"type"    "request-data-invalid"
+                         "message" (str "Invalid service-status-version. "
+                                        "Should be an integer but was abc")}}
+               (json/parse-string (slurp (:body resp)))))))
+    (testing "returns a 400 when a non-existent status-version is queried for"
+      (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
+                                        "services/foo?service-status-version=3"))]
+        (is (= 400 (:status resp)))
+        (is (= {"error" {"type"    "service-status-version-not-found"
+                         "message" (str "No status function with version 3 "
+                                        "found for service foo")}}
                (json/parse-string (slurp (:body resp)))))))))
