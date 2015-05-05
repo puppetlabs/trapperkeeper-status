@@ -14,8 +14,8 @@
   [handler]
   (fn [request]
     (try+ (handler request)
-          (catch #(or (= :request-data-invalid (:type %))
-                      (= :service-status-version-not-found (:type %))) e
+          (catch #(contains? #{:request-data-invalid :service-status-version-not-found}
+                             (:type %)) e
             {:status 400
              :body {:error e}}))))
 

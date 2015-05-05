@@ -98,12 +98,11 @@
    check whether it is valid. If not, throw an error."
   [params]
   (when-let [level (params :service-status-version)]
-    (try
-      (Integer. level)
-      (catch NumberFormatException e
-        (throw+ {:type :request-data-invalid
-                 :message (str "Invalid service-status-version. Should be an "
-                               "integer but was " level)})))))
+    (if-let [parsed-level (ks/parse-int level)]
+      parsed-level
+      (throw+ {:type    :request-data-invalid
+               :message (str "Invalid service-status-version. Should be an "
+                             "integer but was " level)}))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
