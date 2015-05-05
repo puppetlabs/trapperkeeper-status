@@ -13,11 +13,16 @@
 (def ServiceStatusDetailLevel
   (schema/enum :critical :info :debug))
 
+(def StatusCallbackResponse
+  {:is-running schema/Bool
+   :status schema/Any})
+
 (def ServiceInfo
   {:service-version schema/Str
    :service-status-version schema/Int
-   ;; TODO: specify output of callback function in this schema?
-   :status-fn (schema/make-fn-schema ServiceStatusDetailLevel schema/Any)})
+   ;; Note that while this specifies the input and output for the status
+   ;; function for each service, it does not actually validate these
+   :status-fn (schema/make-fn-schema StatusCallbackResponse ServiceStatusDetailLevel)})
 
 (def ServicesInfo
   {schema/Str [ServiceInfo]})
@@ -25,6 +30,7 @@
 (def ServiceStatus
   {:service-version schema/Str
    :service-status-version schema/Int
+   :is-running (schema/enum true false :unknown)
    :status schema/Any})
 
 (def ServicesStatus
@@ -70,8 +76,13 @@
                                service-status-version
                                " found for service "
                                service-name)}))
-      (assoc (select-keys status [:service-version :service-status-version])
-        :status ((:status-fn status) level)))))
+      (let [callback-resp ((:status-fn status) level)
+            data (:status callback-resp)
+            is-running (if-not (schema/check schema/Bool (:is-running callback-resp))
+                         (:is-running callback-resp)
+                         :unknown)
+            versions (select-keys status [:service-version :service-status-version])]
+        (assoc versions :status data :is-running is-running)))))
 
 (schema/defn ^:always-validate call-status-fns :- ServicesStatus
   "Call the latest status function for each service in the service context,

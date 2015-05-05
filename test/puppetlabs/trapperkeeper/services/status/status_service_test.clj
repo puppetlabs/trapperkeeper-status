@@ -32,14 +32,23 @@
 (defservice foo-service
   [[:StatusService register-status]]
   (init [this context]
-    (register-status "foo" "1.1.0" 1 (fn [level] (str "foo status 1 " level)))
-    (register-status "foo" "1.1.0" 2 (fn [level] (str "foo status 2 " level)))
+    (register-status "foo" "1.1.0" 1 (fn [level] {:status (str "foo status 1 " level)
+                                                  :is-running true}))
+    (register-status "foo" "1.1.0" 2 (fn [level] {:status (str "foo status 2 " level)
+                                                  :is-running true}))
     context))
 
 (defservice bar-service
   [[:StatusService register-status]]
   (init [this context]
-    (register-status "bar" "0.1.0" 1 (fn [level] (str "bar status 1 " level)))
+    (register-status "bar" "0.1.0" 1 (fn [level] {:status (str "bar status 1 " level)
+                                                  :is-running false}))
+    context))
+
+(defservice baz-service
+  [[:StatusService register-status]]
+  (init [this context]
+    (register-status "baz" "0.2.0" 1 (fn [level] "baz"))
     context))
 
 (deftest rollup-status-endpoint-test
@@ -53,9 +62,11 @@
         (is (= 200 (:status resp)))
         (is (= {"bar" {"service-version" "0.1.0"
                        "service-status-version" 1
+                       "is-running" false
                        "status" "bar status 1 :info"}
                 "foo" {"service-version" "1.1.0"
                        "service-status-version" 2
+                       "is-running" true
                        "status" "foo status 2 :info"}}
                body))))
     (testing "uses status level from query param"
@@ -64,9 +75,11 @@
         (is (= 200 (:status resp)))
         (is (= {"bar" {"service-version" "0.1.0"
                        "service-status-version" 1
+                       "is-running" false
                        "status" "bar status 1 :debug"}
                 "foo" {"service-version" "1.1.0"
                        "service-status-version" 2
+                       "is-running" true
                        "status" "foo status 2 :debug"}}
                body))))))
 
@@ -85,12 +98,14 @@
 (deftest single-service-status-endpoint-test
   (with-status-service
     app
-    [foo-service]
+    [foo-service
+     baz-service]
     (testing "returns service information for service that has registered a callback"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/foo")]
         (is (= 200 (:status resp)))
         (is (= {"service-version" "1.1.0"
                 "service-status-version" 2
+                "is-running" true
                 "status" "foo status 2 :info"
                 "service-name" "foo"}
                (json/parse-string (slurp (:body resp)))))))
@@ -99,6 +114,7 @@
         (is (= 200 (:status resp)))
         (is (= {"service-version" "1.1.0"
                 "service-status-version" 2
+                "is-running" true
                 "status" "foo status 2 :critical"
                 "service-name" "foo"}
                (json/parse-string (slurp (:body resp)))))))
@@ -107,8 +123,18 @@
         (is (= 200 (:status resp)))
         (is (= {"service-version" "1.1.0"
                 "service-status-version" 1
+                "is-running" true
                 "status" "foo status 1 :info"
                 "service-name" "foo"}
+               (json/parse-string (slurp (:body resp)))))))
+    (testing "returns unknown for is-running if not provided in callback fn"
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services/baz")]
+        (is (= 200 (:status resp)))
+        (is (= {"service-version" "0.2.0"
+                "service-status-version" 1
+                "is-running" "unknown"
+                "status" nil
+                "service-name" "baz"}
                (json/parse-string (slurp (:body resp)))))))
     (testing "returns a 404 for service not registered with the status service"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/notfound")]
