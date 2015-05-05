@@ -70,6 +70,18 @@
                        "status" "foo status 2 :debug"}}
                body))))))
 
+(deftest alternate-mount-point-test
+  (testing "can mount status endpoint at alternate location"
+    (with-app-with-config
+      app
+      [jetty9-service/jetty9-service
+       webrouting-service/webrouting-service
+       status-service]
+      (merge status-service-config
+             {:web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/alternate-status"}})
+      (let [resp (http-client/get "http://localhost:8180/alternate-status/v1/services")]
+        (is (= 200 (:status resp)))))))
+
 (deftest single-service-status-endpoint-test
   (with-status-service
     app
