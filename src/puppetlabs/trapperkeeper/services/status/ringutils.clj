@@ -31,7 +31,7 @@
                {:status 500
                 :body {:error {:type :application-error
                                :message (str "Something unexpected happened: "
-                                             (:error (.getData e)))}}}
+                                             (select-keys (.getData e) [:error :value :type]))}}}
                ;; re-throw exceptions that aren't schema errors
                (throw e)))))))
 

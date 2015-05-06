@@ -75,11 +75,15 @@
 
 (schema/defn ^:always-validate call-status-fns :- ServicesStatus
   "Call the latest status function for each service in the service context,
-  and return a map of service to service status."
+  and return a map of service to service status. Unwrap and rethrow exceptions
+  from pmap that are within a java.util.concurrent.ExecutionException."
   [status-fns :- ServicesInfo
    level :- ServiceStatusDetailLevel]
-  (into {} (pmap (fn [[k v]] {k (call-status-fn-for-service k v level)})
-                 status-fns)))
+  (try
+    (into {} (pmap (fn [[k v]] {k (call-status-fn-for-service k v level)})
+                   status-fns))
+    (catch java.util.concurrent.ExecutionException e
+      (throw (.getCause e)))))
 
 (defn get-status-detail-level
   "Given a params map from a request, get out the status level and check
