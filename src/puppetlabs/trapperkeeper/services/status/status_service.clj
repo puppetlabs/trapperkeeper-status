@@ -20,7 +20,7 @@
   (start [this context]
     (log/info "Registering status service HTTP API at /status")
     (let [path (get-route this)
-          handler (core/build-handler (:status-fns context))]
+          handler (core/build-handler (deref (:status-fns context)))]
       (add-ring-handler this (compojure/context path [] handler)))
     context)
 

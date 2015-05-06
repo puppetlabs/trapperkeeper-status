@@ -109,18 +109,17 @@
 ;;; Compojure App
 
 (defn build-routes
-  [status-fns-atom]
+  [status-fns]
   (handler/api
     (compojure/routes
       (compojure/context "/v1" []
         (compojure/GET "/services" [:as {params :params}]
           (let [level (get-status-detail-level params)
-                statuses (call-status-fns (deref status-fns-atom)
-                                          level)]
+                statuses (call-status-fns status-fns level)]
             {:status 200
              :body statuses}))
          (compojure/GET "/services/:service-name" [service-name :as {params :params}]
-           (if-let [service-info (get (deref status-fns-atom) service-name)]
+           (if-let [service-info (get status-fns service-name)]
              (let [level (get-status-detail-level params)
                    service-status-version (get-service-status-version params)
                    status (call-status-fn-for-service service-name
@@ -134,8 +133,8 @@
                              :message (str "No status information found for service "
                                            service-name)}}}))))))
 
-(defn build-handler [status-fns-atom]
-  (-> (build-routes status-fns-atom)
+(defn build-handler [status-fns]
+  (-> (build-routes status-fns)
       ringutils/wrap-request-data-errors
       ringutils/wrap-schema-errors
       ringutils/wrap-errors
