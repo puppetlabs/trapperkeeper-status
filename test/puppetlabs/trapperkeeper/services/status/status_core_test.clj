@@ -15,4 +15,17 @@
 
       (is (nil? (schema/check ServicesInfo @status-fns)))
       (is (= 2 (count (get @status-fns "foo"))))
-      (is (= 1 (count (get @status-fns "bar")))))))
+      (is (= 1 (count (get @status-fns "bar")))))
+
+    (testing (str "registering a service status callback function with a "
+                  "version that already exists causes an error")
+      (is (thrown? IllegalStateException
+                   (update-status-context status-fns "foo"
+                                          "1.1.0" 2 (fn [] "foo repeat")))))
+
+    (testing (str "registering a service status callback function with a "
+                  "status version that already exists but a different service "
+                  "version causes an error")
+      (is (thrown? IllegalStateException
+                   (update-status-context status-fns "foo"
+                                          "1.2.0" 2 (fn [] "foo repeat")))))))

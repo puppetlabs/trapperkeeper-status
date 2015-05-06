@@ -42,6 +42,14 @@
 (defn update-status-context
   "Update the :status-fns atom in the service context."
   [status-fns-atom svc-name svc-version status-version status-fn]
+  (when-not (empty? (filter #(= (:service-status-version %)
+                                status-version)
+                            (get (deref status-fns-atom) svc-name)))
+    (throw
+      (IllegalStateException.
+        (str "Service function already exists for service " svc-name
+             " with version " svc-version " and status version "
+             status-version))))
   (let [status-map (service-status-map svc-version status-version status-fn)]
     (swap! status-fns-atom update-in [svc-name] conj status-map)))
 
