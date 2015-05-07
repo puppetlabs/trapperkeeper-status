@@ -27,11 +27,13 @@
 (def ServicesInfo
   {schema/Str [ServiceInfo]})
 
+;; this is what gets returned in the HTTP response as json, and thus should
+;; use underscores rather than hyphens
 (def ServiceStatus
-  {:service-version schema/Str
-   :service-status-version schema/Int
-   :is-running (schema/enum true false :unknown)
-   :detail-level ServiceStatusDetailLevel
+  {:service_version schema/Str
+   :service_status_version schema/Int
+   :is_running (schema/enum true false :unknown)
+   :detail_level ServiceStatusDetailLevel
    :status schema/Any})
 
 (def ServicesStatus
@@ -82,9 +84,12 @@
             data (:status callback-resp)
             is-running (if-not (schema/check schema/Bool (:is-running callback-resp))
                          (:is-running callback-resp)
-                         :unknown)
-            versions (select-keys status [:service-version :service-status-version])]
-        (assoc versions :detail-level level :status data :is-running is-running)))))
+                         :unknown)]
+        {:service_version (:service-version status)
+         :service_status_version (:service-status-version status)
+         :detail_level level
+         :is_running is-running
+         :status data}))))
 
 (schema/defn ^:always-validate call-status-fns :- ServicesStatus
   "Call the latest status function for each service in the service context,
@@ -114,11 +119,11 @@
   "Given a params map from a request, get out the service status version and
    check whether it is valid. If not, throw an error."
   [params]
-  (when-let [level (params :service-status-version)]
+  (when-let [level (params :service_status_version)]
     (if-let [parsed-level (ks/parse-int level)]
       parsed-level
       (throw+ {:type    :request-data-invalid
-               :message (str "Invalid service-status-version. Should be an "
+               :message (str "Invalid service_status_version. Should be an "
                              "integer but was " level)}))))
 
 
@@ -144,7 +149,7 @@
                                                       level
                                                       service-status-version)]
                {:status 200
-                :body (assoc status :service-name service-name)})
+                :body (assoc status :service_name service-name)})
              {:status 404
               :body {:error {:type :service-not-found
                              :message (str "No status information found for service "

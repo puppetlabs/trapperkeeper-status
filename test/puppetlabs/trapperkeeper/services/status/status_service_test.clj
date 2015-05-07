@@ -60,30 +60,30 @@
       (let [resp (http-client/get "http://localhost:8180/status/v1/services")
             body (json/parse-string (slurp (:body resp)))]
         (is (= 200 (:status resp)))
-        (is (= {"bar" {"service-version" "0.1.0"
-                       "service-status-version" 1
-                       "is-running" false
-                       "detail-level" "info"
+        (is (= {"bar" {"service_version" "0.1.0"
+                       "service_status_version" 1
+                       "is_running" false
+                       "detail_level" "info"
                        "status" "bar status 1 :info"}
-                "foo" {"service-version" "1.1.0"
-                       "service-status-version" 2
-                       "is-running" true
-                       "detail-level" "info"
+                "foo" {"service_version" "1.1.0"
+                       "service_status_version" 2
+                       "is_running" true
+                       "detail_level" "info"
                        "status" "foo status 2 :info"}}
                body))))
     (testing "uses status level from query param"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services?level=debug")
             body (json/parse-string (slurp (:body resp)))]
         (is (= 200 (:status resp)))
-        (is (= {"bar" {"service-version" "0.1.0"
-                       "service-status-version" 1
-                       "is-running" false
-                       "detail-level" "debug"
+        (is (= {"bar" {"service_version" "0.1.0"
+                       "service_status_version" 1
+                       "is_running" false
+                       "detail_level" "debug"
                        "status" "bar status 1 :debug"}
-                "foo" {"service-version" "1.1.0"
-                       "service-status-version" 2
-                       "is-running" true
-                       "detail-level" "debug"
+                "foo" {"service_version" "1.1.0"
+                       "service_status_version" 2
+                       "is_running" true
+                       "detail_level" "debug"
                        "status" "foo status 2 :debug"}}
                body))))))
 
@@ -107,42 +107,42 @@
     (testing "returns service information for service that has registered a callback"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/foo")]
         (is (= 200 (:status resp)))
-        (is (= {"service-version" "1.1.0"
-                "service-status-version" 2
-                "is-running" true
-                "detail-level" "info"
+        (is (= {"service_version" "1.1.0"
+                "service_status_version" 2
+                "is_running" true
+                "detail_level" "info"
                 "status" "foo status 2 :info"
-                "service-name" "foo"}
+                "service_name" "foo"}
                (json/parse-string (slurp (:body resp)))))))
     (testing "uses status level query param"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/foo?level=critical")]
         (is (= 200 (:status resp)))
-        (is (= {"service-version" "1.1.0"
-                "service-status-version" 2
-                "is-running" true
-                "detail-level" "critical"
+        (is (= {"service_version" "1.1.0"
+                "service_status_version" 2
+                "is_running" true
+                "detail_level" "critical"
                 "status" "foo status 2 :critical"
-                "service-name" "foo"}
+                "service_name" "foo"}
                (json/parse-string (slurp (:body resp)))))))
-    (testing "uses service-status-version query param"
-      (let [resp (http-client/get "http://localhost:8180/status/v1/services/foo?service-status-version=1")]
+    (testing "uses service_status_version query param"
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services/foo?service_status_version=1")]
         (is (= 200 (:status resp)))
-        (is (= {"service-version" "1.1.0"
-                "service-status-version" 1
-                "is-running" true
-                "detail-level" "info"
+        (is (= {"service_version" "1.1.0"
+                "service_status_version" 1
+                "is_running" true
+                "detail_level" "info"
                 "status" "foo status 1 :info"
-                "service-name" "foo"}
+                "service_name" "foo"}
                (json/parse-string (slurp (:body resp)))))))
-    (testing "returns unknown for is-running if not provided in callback fn"
+    (testing "returns unknown for is_running if not provided in callback fn"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/baz")]
         (is (= 200 (:status resp)))
-        (is (= {"service-version" "0.2.0"
-                "service-status-version" 1
-                "is-running" "unknown"
-                "detail-level" "info"
+        (is (= {"service_version" "0.2.0"
+                "service_status_version" 1
+                "is_running" "unknown"
+                "detail_level" "info"
                 "status" nil
-                "service-name" "baz"}
+                "service_name" "baz"}
                (json/parse-string (slurp (:body resp)))))))
     (testing "returns a 404 for service not registered with the status service"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/notfound")]
@@ -162,15 +162,15 @@
                (json/parse-string (slurp (:body resp)))))))
     (testing "returns a 400 when a non-integer status-version is queried for"
       (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
-                                       "services/foo?service-status-version=abc"))]
+                                       "services/foo?service_status_version=abc"))]
         (is (= 400 (:status resp)))
         (is (= {"error" {"type"    "request-data-invalid"
-                         "message" (str "Invalid service-status-version. "
+                         "message" (str "Invalid service_status_version. "
                                         "Should be an integer but was abc")}}
                (json/parse-string (slurp (:body resp)))))))
     (testing "returns a 400 when a non-existent status-version is queried for"
       (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
-                                        "services/foo?service-status-version=3"))]
+                                        "services/foo?service_status_version=3"))]
         (is (= 400 (:status resp)))
         (is (= {"error" {"type"    "service-status-version-not-found"
                          "message" (str "No status function with version 3 "
