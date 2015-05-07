@@ -19,13 +19,16 @@
 
     (testing (str "registering a service status callback function with a "
                   "version that already exists causes an error")
-      (is (thrown? IllegalStateException
-                   (update-status-context status-fns "foo"
-                                          "1.1.0" 2 (fn [] "foo repeat")))))
+      (is (thrown-with-msg? IllegalStateException
+                            #"Service function already exists.*"
+                            (update-status-context status-fns "foo"
+                                                   "1.1.0" 2
+                                                   (fn [] "foo repeat")))))
 
     (testing (str "registering a service status callback function with a "
-                  "status version that already exists but a different service "
-                  "version causes an error")
-      (is (thrown? IllegalStateException
-                   (update-status-context status-fns "foo"
-                                          "1.2.0" 2 (fn [] "foo repeat")))))))
+                  "different service version causes an error")
+      (is (thrown-with-msg? IllegalStateException
+                            #"Cannot register multiple callbacks.*different service version"
+                            (update-status-context status-fns "foo"
+                                                   "1.2.0" 3
+                                                   (fn [] "foo repeat")))))))
