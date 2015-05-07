@@ -63,10 +63,12 @@
         (is (= {"bar" {"service-version" "0.1.0"
                        "service-status-version" 1
                        "is-running" false
+                       "detail-level" "info"
                        "status" "bar status 1 :info"}
                 "foo" {"service-version" "1.1.0"
                        "service-status-version" 2
                        "is-running" true
+                       "detail-level" "info"
                        "status" "foo status 2 :info"}}
                body))))
     (testing "uses status level from query param"
@@ -76,10 +78,12 @@
         (is (= {"bar" {"service-version" "0.1.0"
                        "service-status-version" 1
                        "is-running" false
+                       "detail-level" "debug"
                        "status" "bar status 1 :debug"}
                 "foo" {"service-version" "1.1.0"
                        "service-status-version" 2
                        "is-running" true
+                       "detail-level" "debug"
                        "status" "foo status 2 :debug"}}
                body))))))
 
@@ -106,6 +110,7 @@
         (is (= {"service-version" "1.1.0"
                 "service-status-version" 2
                 "is-running" true
+                "detail-level" "info"
                 "status" "foo status 2 :info"
                 "service-name" "foo"}
                (json/parse-string (slurp (:body resp)))))))
@@ -115,6 +120,7 @@
         (is (= {"service-version" "1.1.0"
                 "service-status-version" 2
                 "is-running" true
+                "detail-level" "critical"
                 "status" "foo status 2 :critical"
                 "service-name" "foo"}
                (json/parse-string (slurp (:body resp)))))))
@@ -124,6 +130,7 @@
         (is (= {"service-version" "1.1.0"
                 "service-status-version" 1
                 "is-running" true
+                "detail-level" "info"
                 "status" "foo status 1 :info"
                 "service-name" "foo"}
                (json/parse-string (slurp (:body resp)))))))
@@ -133,6 +140,7 @@
         (is (= {"service-version" "0.2.0"
                 "service-status-version" 1
                 "is-running" "unknown"
+                "detail-level" "info"
                 "status" nil
                 "service-name" "baz"}
                (json/parse-string (slurp (:body resp)))))))
