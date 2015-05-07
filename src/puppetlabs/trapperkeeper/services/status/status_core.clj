@@ -31,6 +31,28 @@
   {schema/Str ServiceStatus})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Private
+
+(defn validate-callback-registration
+  [status-fns svc-name svc-version status-version]
+  (let [differing-svc-version? (and (not (nil? (first status-fns)))
+                                    (not= (:service-version (first status-fns))
+                                          svc-version))
+        differing-status-version? (not (empty?
+                                         (filter #(= (:service-status-version %)
+                                                     status-version)
+                                                 status-fns)))
+        error-message (if differing-svc-version?
+                        (str "Cannot register multiple callbacks for a single "
+                             "service with different service versions.")
+                        (str "Service function already exists for service "
+                             svc-name
+                             " with status version "
+                             status-version))]
+    (when (or differing-svc-version? differing-status-version?)
+      (throw (IllegalStateException. error-message)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
 (schema/defn service-status-map :- ServiceInfo
@@ -42,21 +64,10 @@
 (defn update-status-context
   "Update the :status-fns atom in the service context."
   [status-fns-atom svc-name svc-version status-version status-fn]
-  (let [callbacks (get (deref status-fns-atom) svc-name)]
-    (when-let [first-callback (first callbacks)]
-      (when (not= (:service-version first-callback) svc-version)
-        (throw
-          (IllegalStateException.
-            (str "Cannot register multiple callbacks for a single service with "
-                 "different service versions.")))))
-    (when-not (empty? (filter #(= (:service-status-version %)
+  (validate-callback-registration (get (deref status-fns-atom) svc-name)
+                                  svc-name
+                                  svc-version
                                   status-version)
-                              callbacks))
-      (throw
-        (IllegalStateException.
-          (str "Service function already exists for service " svc-name
-               " with version " svc-version " and status version "
-               status-version)))))
   (let [status-map (service-status-map svc-version status-version status-fn)]
     (swap! status-fns-atom update-in [svc-name] conj status-map)))
 
