@@ -212,9 +212,9 @@
               {:status 200
                :body (assoc status :service_name service-name)})
             {:status 404
-             :body {:error {:type :service-not-found
-                            :message (str "No status information found for service "
-                                       service-name)}}}))))))
+             :body {:type :service-not-found
+                    :message (str "No status information found for service "
+                               service-name)}}))))))
 
 (defn build-handler [status-fns]
   (-> (build-routes status-fns)
