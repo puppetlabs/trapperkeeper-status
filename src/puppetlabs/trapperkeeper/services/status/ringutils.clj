@@ -17,7 +17,7 @@
           (catch #(contains? #{:request-data-invalid :service-status-version-not-found}
                              (:type %)) e
             {:status 400
-             :body {:error e}}))))
+             :body e}))))
 
 (defn wrap-schema-errors
   "A ring middleware that catches schema errors and returns a 500
@@ -29,9 +29,9 @@
            (let [message (.getMessage e)]
              (if (re-find #"does not match schema" message)
                {:status 500
-                :body {:error {:type :application-error
-                               :message (str "Something unexpected happened: "
-                                             (select-keys (.getData e) [:error :value :type]))}}}
+                :body {:type :application-error
+                       :message (str "Something unexpected happened: "
+                                     (select-keys (.getData e) [:error :value :type]))}}
                ;; re-throw exceptions that aren't schema errors
                (throw e)))))))
 
@@ -44,5 +44,5 @@
          (catch Exception e
            (log/error e "Error on server")
            {:status 500
-            :body {:error {:type :application-error
-                           :message (str "Error on server: " e)}}}))))
+            :body {:type :application-error
+                   :message (str "Error on server: " e)}}))))
