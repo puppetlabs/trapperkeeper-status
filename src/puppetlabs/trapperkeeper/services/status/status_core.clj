@@ -13,18 +13,32 @@
 (def ServiceStatusDetailLevel
   (schema/enum :critical :info :debug))
 
+(def IsRunning
+  (schema/enum :true :false :unknown))
+
+(def StatusCallbackResponse
+  {:is-running IsRunning
+   :status schema/Any})
+
 (def ServiceInfo
   {:service-version schema/Str
    :service-status-version schema/Int
-   ;; TODO: specify output of callback function in this schema?
-   :status-fn (schema/make-fn-schema ServiceStatusDetailLevel schema/Any)})
+   ;; Note that while this specifies the input and output for the status
+   ;; function for each service, it does not actually validate these
+   :status-fn (schema/make-fn-schema StatusCallbackResponse ServiceStatusDetailLevel)})
 
 (def ServicesInfo
   {schema/Str [ServiceInfo]})
 
+;; this is what gets returned in the HTTP response as json, and thus uses
+;; underscores rather than hyphens
+;; TODO: merge StatusCallbackResponse with this, rather than duplicating its
+;; two keys, and remove underscores from this schema.
 (def ServiceStatus
-  {:service-version schema/Str
-   :service-status-version schema/Int
+  {:service_version schema/Str
+   :service_status_version schema/Int
+   :is_running IsRunning
+   :detail_level ServiceStatusDetailLevel
    :status schema/Any})
 
 (def ServicesStatus
@@ -46,11 +60,12 @@
     (swap! status-fns-atom update-in [svc-name] conj status-map)))
 
 (schema/defn ^:always-validate call-status-fn-for-service :- ServiceStatus
-  "Given a list of maps containing service information and a status function,
-  find the specified version, and return a map with the service's version, the
-  version of the service's status, and the results of calling this status
-  function. If no version for the status function is specified, the most recent
-  version will be used."
+  "Construct a map with the service's version, the version of the service's
+  status, the detail level, and the results of calling the status function
+  corresponding to the status version specified (or the most recent version if
+  not). If the response from the callback function does not include an
+  :is-running key, or returns a value other than true or false, return
+  :unknown for :is-running."
   ([service-name :- schema/Str
     service :- [ServiceInfo]
     level :- ServiceStatusDetailLevel]
@@ -70,16 +85,31 @@
                                service-status-version
                                " found for service "
                                service-name)}))
-      (assoc (select-keys status [:service-version :service-status-version])
-        :status ((:status-fn status) level)))))
+      (let [callback-resp ((:status-fn status) level)
+            data (:status callback-resp)
+            is-running (if-not (schema/check IsRunning (:is-running callback-resp))
+                         (:is-running callback-resp)
+                         :unknown)]
+        {:service_version (:service-version status)
+         :service_status_version (:service-status-version status)
+         :detail_level level
+         :is_running is-running
+         :status data}))))
 
 (schema/defn ^:always-validate call-status-fns :- ServicesStatus
   "Call the latest status function for each service in the service context,
   and return a map of service to service status."
   [status-fns :- ServicesInfo
    level :- ServiceStatusDetailLevel]
-  (into {} (pmap (fn [[k v]] {k (call-status-fn-for-service k v level)})
-                 status-fns)))
+  (try
+    (into {} (pmap (fn [[k v]] {k (call-status-fn-for-service k v level)})
+                   status-fns))
+    ;; pmap returns all exceptions that occur while it is executing tasks in a
+    ;; java.util.concurrent.ExecutionException. This unwraps and rethrows
+    ;; these exceptions so that our other middleware can handle them
+    ;; appropriately.
+    (catch java.util.concurrent.ExecutionException e
+      (throw (.getCause e)))))
 
 (defn get-status-detail-level
   "Given a params map from a request, get out the status level and check
@@ -97,11 +127,11 @@
   "Given a params map from a request, get out the service status version and
    check whether it is valid. If not, throw an error."
   [params]
-  (when-let [level (params :service-status-version)]
+  (when-let [level (params :service_status_version)]
     (if-let [parsed-level (ks/parse-int level)]
       parsed-level
       (throw+ {:type    :request-data-invalid
-               :message (str "Invalid service-status-version. Should be an "
+               :message (str "Invalid service_status_version. Should be an "
                              "integer but was " level)}))))
 
 
@@ -127,7 +157,7 @@
                                                       level
                                                       service-status-version)]
                {:status 200
-                :body (assoc status :service-name service-name)})
+                :body (assoc status :service_name service-name)})
              {:status 404
               :body {:error {:type :service-not-found
                              :message (str "No status information found for service "
