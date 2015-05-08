@@ -34,7 +34,7 @@ It indicates the version number of each service that is providing status informa
  format version as part of the query, which provides a way for individual services to
  make backward compatibility guarantees about the format of their status data as it
  evolves over time.  See the docs on the
- [`/services/<service-name` endpoint](./query-api.md#GETStatusV1ServicesServiceName)
+ [`/services/<service-name` endpoint](./query-api.md#get-statusv1servicesservice-name)
  for more info.
 
 `<detail-level>` is a String from the following enumeration: (`"critical"`, `"info"`,

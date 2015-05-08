@@ -36,7 +36,7 @@ This will return status information for all registered services in an applicatio
 ### URL Parameters
 
 * `level`: Optional.  A JSON String from among the legal
-[Status Detail Levels](#StatusDetailLevel) listed above.  Status information for
+[Status Detail Levels](#status-detail-level) listed above.  Status information for
 all registered services will be provided at the requested level of detail.  If
 not provided, the default level is `"info"`.
 
@@ -59,13 +59,14 @@ The response format will be a JSON _Object_, which will look something like this
 
 For detailed information, please see the [Wire Format Specification](./wire-formats.md).
 
-NOTE: If any services in your application have registered more than one supported
-status format version, and you are querying at a detail level other than `critical`
-this endpoint will *always* return the latest format.  Therefore,
-if you need to ensure backward compatibility across upgrades of your application,
-you should consider using the [`/services/<service-name>`](#GETStatusV1ServiceServiceName) endpoint (which
-returns status info for a single service), rather than the `/services` endpoint
-(which aggregates status for all registered services).
+NOTE: If any services in your application have registered more than one
+supported status format version, and you are querying at a detail level other
+than `critical` this endpoint will *always* return the latest format.
+Therefore, if you need to ensure backward compatibility across upgrades of
+your application, you should consider using the
+[`/services/<service-name>`](#get-statusv1servicesservice-name) endpoint
+(which returns status info for a single service), rather than the `/services`
+endpoint (which aggregates status for all registered services).
 
 ### Examples
 
@@ -130,11 +131,11 @@ application.
 ### URL Parameters
 
 * `level`: Optional.  A JSON String from among the legal
-[Status Detail Levels](#StatusDetailLevel) listed above.  Status information for
+[Status Detail Levels](#status-detail-level) listed above.  Status information for
 the requested service will be provided at the requested level of detail.  If
 not provided, the default level is `"info"`.
 
-* `service-status-version`: Optional.  A JSON integer specifying the desired status
+* `service_status_version`: Optional.  A JSON integer specifying the desired status
 format version for the requested service.  If not provide, defaults to the latest
 available status format version for the service.
 
