@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/puppetlabs/trapperkeeper-status.svg)](https://travis-ci.org/puppetlabs/trapperkeeper-status)
 
+[![Clojars Project](http://clojars.org/puppetlabs/trapperkeeper-status/latest-version.svg)](http://clojars.org/puppetlabs/trapperkeeper-status)
+
 A Trapperkeeper service that provides a web endpoint for getting status
 information about a running Trapperkeeper application.
 
