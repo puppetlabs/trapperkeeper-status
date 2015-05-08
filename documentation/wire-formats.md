@@ -56,10 +56,8 @@ It indicates the version number of each service that is providing status informa
 Error responses are formatted as a JSON _Object_:
 
     {
-        "error": {
-            "type": <error-type-string>,
-            "message": <error-message-string>
-        }
+        "type": <error-type-string>,
+        "message": <error-message-string>
     }
 
 `<error-type-string>` is a String that serves as a unique identifier for the type
