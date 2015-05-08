@@ -9,6 +9,8 @@
 
   :pedantic? :abort
 
+  :exclusions [org.clojure/clojure]
+
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [cheshire "5.3.1"]
                  [compojure "1.1.8" :exclusions [commons-io org.clojure/tools.macro]]
@@ -16,7 +18,9 @@
                  [ring/ring-json "0.3.1" :exclusions [commons-io]]
                  [slingshot "0.12.2"]
                  [puppetlabs/kitchensink ~ks-version]
-                 [puppetlabs/trapperkeeper ~tk-version]]
+                 [puppetlabs/trapperkeeper ~tk-version]
+                 [grimradical/clj-semver "0.3.0"]
+                 [trptcolin/versioneer "0.2.0"]]
 
   :lein-release {:scm         :git
                  :deploy-via  :lein-deploy}
@@ -31,5 +35,4 @@
                                   [puppetlabs/trapperkeeper-webserver-jetty9 "1.3.1"]
                                   [puppetlabs/kitchensink ~ks-version :classifier "test" :scope "test"]]}}
 
-  :plugins [[lein-release "1.0.5"]]
-  )
+  :plugins [[lein-release "1.0.5"]])

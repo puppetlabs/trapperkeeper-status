@@ -5,7 +5,9 @@
             [ring.middleware.json :as ring-json]
             [slingshot.slingshot :refer [throw+]]
             [puppetlabs.kitchensink.core :as ks]
-            [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]))
+            [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
+            [clj-semver.core :as semver]
+            [trptcolin.versioneer.core :as versioneer]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -44,6 +46,9 @@
 (def ServicesStatus
   {schema/Str ServiceStatus})
 
+(def SemVerVersion
+  (schema/pred semver/valid-format? "semver"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
@@ -68,6 +73,24 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
+
+(schema/defn ^:always-validate
+  get-service-version :- SemVerVersion
+  [group-id artifact-id]
+  (let [version (versioneer/get-version group-id artifact-id)]
+    (when-not version
+      (throw (IllegalStateException.
+               (format "Unable to find version number for '%s/%s'"
+                       group-id
+                       artifact-id))))
+    (when-not (semver/valid-format? version)
+      (throw (IllegalStateException.
+               (format "Service '%s/%s' has version that does not comply with semver: '%s'"
+                       group-id
+                       artifact-id
+                       version))))
+    version))
+
 
 (schema/defn service-status-map :- ServiceInfo
   [svc-version status-version status-fn]
