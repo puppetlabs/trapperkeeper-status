@@ -14,12 +14,14 @@
     ;; implement it.
     (is (nil? (schema/check
                 SemVerVersion
-                (get-service-version "puppetlabs" "trapperkeeper-status"))))
-    (is (thrown? IllegalStateException
-                 (get-service-version "fake-group" "artifact-that-does-not-exist")))
+                (get-artifact-version "puppetlabs" "trapperkeeper-status"))))
+    (is (thrown-with-msg? IllegalStateException
+                          #"Unable to find version number for"
+                 (get-artifact-version "fake-group" "artifact-that-does-not-exist")))
     (with-redefs [versioneer/get-version (constantly "bad-version-string")]
-      (is (thrown? IllegalStateException
-                   (get-service-version "puppetlabs" "trapperkeeper-status"))))))
+      (is (thrown-with-msg? IllegalStateException
+                            #"does not comply with semver"
+                   (get-artifact-version "puppetlabs" "trapperkeeper-status"))))))
 
 (deftest update-status-context-test
   (let [status-fns (atom {})]

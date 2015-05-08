@@ -75,10 +75,14 @@
 ;;; Public
 
 (schema/defn ^:always-validate
-  get-service-version :- SemVerVersion
+  get-artifact-version :- SemVerVersion
+  "Utility function that services can use to get a value to pass in as their
+  `service-version` when registering a status callback.  `group-id` and
+  `artifact-id` should match the maven/leiningen identifiers for the project
+  that the service is defined in."
   [group-id artifact-id]
   (let [version (versioneer/get-version group-id artifact-id)]
-    (when-not version
+    (when (empty? version)
       (throw (IllegalStateException.
                (format "Unable to find version number for '%s/%s'"
                        group-id
