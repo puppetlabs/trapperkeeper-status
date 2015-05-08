@@ -98,13 +98,16 @@
 
 (schema/defn ^:always-validate call-status-fns :- ServicesStatus
   "Call the latest status function for each service in the service context,
-  and return a map of service to service status. Unwrap and rethrow exceptions
-  from pmap that are within a java.util.concurrent.ExecutionException."
+  and return a map of service to service status."
   [status-fns :- ServicesInfo
    level :- ServiceStatusDetailLevel]
   (try
     (into {} (pmap (fn [[k v]] {k (call-status-fn-for-service k v level)})
                    status-fns))
+    ;; pmap returns all exceptions that occur while it is executing tasks in a
+    ;; java.util.concurrent.ExecutionException. This unwraps and rethrows
+    ;; these exceptions so that our other middleware can handle them
+    ;; appropriately.
     (catch java.util.concurrent.ExecutionException e
       (throw (.getCause e)))))
 
