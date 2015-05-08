@@ -5,7 +5,9 @@
             [ring.middleware.json :as ring-json]
             [slingshot.slingshot :refer [throw+]]
             [puppetlabs.kitchensink.core :as ks]
-            [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]))
+            [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
+            [clj-semver.core :as semver]
+            [trptcolin.versioneer.core :as versioneer]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -44,30 +46,55 @@
 (def ServicesStatus
   {schema/Str ServiceStatus})
 
+(def SemVerVersion
+  (schema/pred semver/valid-format? "semver"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
 (defn validate-callback-registration
   [status-fns svc-name svc-version status-version]
   (let [differing-svc-version? (and (not (nil? (first status-fns)))
-                                    (not= (:service-version (first status-fns))
-                                          svc-version))
+                                 (not= (:service-version (first status-fns))
+                                   svc-version))
         differing-status-version? (not (empty?
                                          (filter #(= (:service-status-version %)
-                                                     status-version)
-                                                 status-fns)))
+                                                   status-version)
+                                           status-fns)))
         error-message (if differing-svc-version?
                         (str "Cannot register multiple callbacks for a single "
-                             "service with different service versions.")
+                          "service with different service versions.")
                         (str "Service function already exists for service "
-                             svc-name
-                             " with status version "
-                             status-version))]
+                          svc-name
+                          " with status version "
+                          status-version))]
     (when (or differing-svc-version? differing-status-version?)
       (throw (IllegalStateException. error-message)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
+
+(schema/defn ^:always-validate
+  get-artifact-version :- SemVerVersion
+  "Utility function that services can use to get a value to pass in as their
+  `service-version` when registering a status callback.  `group-id` and
+  `artifact-id` should match the maven/leiningen identifiers for the project
+  that the service is defined in."
+  [group-id artifact-id]
+  (let [version (versioneer/get-version group-id artifact-id)]
+    (when (empty? version)
+      (throw (IllegalStateException.
+               (format "Unable to find version number for '%s/%s'"
+                 group-id
+                 artifact-id))))
+    (when-not (semver/valid-format? version)
+      (throw (IllegalStateException.
+               (format "Service '%s/%s' has version that does not comply with semver: '%s'"
+                 group-id
+                 artifact-id
+                 version))))
+    version))
+
 
 (schema/defn service-status-map :- ServiceInfo
   [svc-version status-version status-fn]
@@ -79,9 +106,9 @@
   "Update the :status-fns atom in the service context."
   [status-fns-atom svc-name svc-version status-version status-fn]
   (validate-callback-registration (get (deref status-fns-atom) svc-name)
-                                  svc-name
-                                  svc-version
-                                  status-version)
+    svc-name
+    svc-version
+    status-version)
   (let [status-map (service-status-map svc-version status-version status-fn)]
     (swap! status-fns-atom update-in [svc-name] conj status-map)))
 
@@ -103,14 +130,14 @@
     (let [status (if (nil? service-status-version)
                    (last (sort-by :service-status-version service))
                    (first (filter #(= (:service-status-version %)
-                                      service-status-version)
-                                  service)))]
+                                    service-status-version)
+                            service)))]
       (when (nil? status)
         (throw+ {:type    :service-status-version-not-found
                  :message (str "No status function with version "
-                               service-status-version
-                               " found for service "
-                               service-name)}))
+                            service-status-version
+                            " found for service "
+                            service-name)}))
       (let [callback-resp ((:status-fn status) level)
             data (:status callback-resp)
             is-running (if-not (schema/check IsRunning (:is-running callback-resp))
@@ -129,7 +156,7 @@
    level :- ServiceStatusDetailLevel]
   (try
     (into {} (pmap (fn [[k v]] {k (call-status-fn-for-service k v level)})
-                   status-fns))
+               status-fns))
     ;; pmap returns all exceptions that occur while it is executing tasks in a
     ;; java.util.concurrent.ExecutionException. This unwraps and rethrows
     ;; these exceptions so that our other middleware can handle them
@@ -158,7 +185,7 @@
       parsed-level
       (throw+ {:type    :request-data-invalid
                :message (str "Invalid service_status_version. Should be an "
-                             "integer but was " level)}))))
+                          "integer but was " level)}))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -174,24 +201,24 @@
                 statuses (call-status-fns status-fns level)]
             {:status 200
              :body statuses}))
-         (compojure/GET "/services/:service-name" [service-name :as {params :params}]
-           (if-let [service-info (get status-fns service-name)]
-             (let [level (get-status-detail-level params)
-                   service-status-version (get-service-status-version params)
-                   status (call-status-fn-for-service service-name
-                                                      service-info
-                                                      level
-                                                      service-status-version)]
-               {:status 200
-                :body (assoc status :service_name service-name)})
-             {:status 404
-              :body {:error {:type :service-not-found
-                             :message (str "No status information found for service "
-                                           service-name)}}}))))))
+        (compojure/GET "/services/:service-name" [service-name :as {params :params}]
+          (if-let [service-info (get status-fns service-name)]
+            (let [level (get-status-detail-level params)
+                  service-status-version (get-service-status-version params)
+                  status (call-status-fn-for-service service-name
+                           service-info
+                           level
+                           service-status-version)]
+              {:status 200
+               :body (assoc status :service_name service-name)})
+            {:status 404
+             :body {:error {:type :service-not-found
+                            :message (str "No status information found for service "
+                                       service-name)}}}))))))
 
 (defn build-handler [status-fns]
   (-> (build-routes status-fns)
-      ringutils/wrap-request-data-errors
-      ringutils/wrap-schema-errors
-      ringutils/wrap-errors
-      ring-json/wrap-json-response))
+    ringutils/wrap-request-data-errors
+    ringutils/wrap-schema-errors
+    ringutils/wrap-errors
+    ring-json/wrap-json-response))
