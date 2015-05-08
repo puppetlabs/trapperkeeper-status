@@ -13,8 +13,11 @@
 (def ServiceStatusDetailLevel
   (schema/enum :critical :info :debug))
 
+(def IsRunning
+  (schema/enum :true :false :unknown))
+
 (def StatusCallbackResponse
-  {:is-running schema/Bool
+  {:is-running IsRunning
    :status schema/Any})
 
 (def ServiceInfo
@@ -27,12 +30,14 @@
 (def ServicesInfo
   {schema/Str [ServiceInfo]})
 
-;; this is what gets returned in the HTTP response as json, and thus should
-;; use underscores rather than hyphens
+;; this is what gets returned in the HTTP response as json, and thus uses
+;; underscores rather than hyphens
+;; TODO: merge StatusCallbackResponse with this, rather than duplicating its
+;; two keys, and remove underscores from this schema.
 (def ServiceStatus
   {:service_version schema/Str
    :service_status_version schema/Int
-   :is_running (schema/enum true false :unknown)
+   :is_running IsRunning
    :detail_level ServiceStatusDetailLevel
    :status schema/Any})
 
@@ -82,7 +87,7 @@
                                service-name)}))
       (let [callback-resp ((:status-fn status) level)
             data (:status callback-resp)
-            is-running (if-not (schema/check schema/Bool (:is-running callback-resp))
+            is-running (if-not (schema/check IsRunning (:is-running callback-resp))
                          (:is-running callback-resp)
                          :unknown)]
         {:service_version (:service-version status)

@@ -33,16 +33,16 @@
   [[:StatusService register-status]]
   (init [this context]
     (register-status "foo" "1.1.0" 1 (fn [level] {:status (str "foo status 1 " level)
-                                                  :is-running true}))
+                                                  :is-running :true}))
     (register-status "foo" "1.1.0" 2 (fn [level] {:status (str "foo status 2 " level)
-                                                  :is-running true}))
+                                                  :is-running :true}))
     context))
 
 (defservice bar-service
   [[:StatusService register-status]]
   (init [this context]
     (register-status "bar" "0.1.0" 1 (fn [level] {:status (str "bar status 1 " level)
-                                                  :is-running false}))
+                                                  :is-running :false}))
     context))
 
 (defservice baz-service
@@ -62,12 +62,12 @@
         (is (= 200 (:status resp)))
         (is (= {"bar" {"service_version" "0.1.0"
                        "service_status_version" 1
-                       "is_running" false
+                       "is_running" "false"
                        "detail_level" "info"
                        "status" "bar status 1 :info"}
                 "foo" {"service_version" "1.1.0"
                        "service_status_version" 2
-                       "is_running" true
+                       "is_running" "true"
                        "detail_level" "info"
                        "status" "foo status 2 :info"}}
                body))))
@@ -77,12 +77,12 @@
         (is (= 200 (:status resp)))
         (is (= {"bar" {"service_version" "0.1.0"
                        "service_status_version" 1
-                       "is_running" false
+                       "is_running" "false"
                        "detail_level" "debug"
                        "status" "bar status 1 :debug"}
                 "foo" {"service_version" "1.1.0"
                        "service_status_version" 2
-                       "is_running" true
+                       "is_running" "true"
                        "detail_level" "debug"
                        "status" "foo status 2 :debug"}}
                body))))))
@@ -109,7 +109,7 @@
         (is (= 200 (:status resp)))
         (is (= {"service_version" "1.1.0"
                 "service_status_version" 2
-                "is_running" true
+                "is_running" "true"
                 "detail_level" "info"
                 "status" "foo status 2 :info"
                 "service_name" "foo"}
@@ -119,7 +119,7 @@
         (is (= 200 (:status resp)))
         (is (= {"service_version" "1.1.0"
                 "service_status_version" 2
-                "is_running" true
+                "is_running" "true"
                 "detail_level" "critical"
                 "status" "foo status 2 :critical"
                 "service_name" "foo"}
@@ -129,7 +129,7 @@
         (is (= 200 (:status resp)))
         (is (= {"service_version" "1.1.0"
                 "service_status_version" 1
-                "is_running" true
+                "is_running" "true"
                 "detail_level" "info"
                 "status" "foo status 1 :info"
                 "service_name" "foo"}
