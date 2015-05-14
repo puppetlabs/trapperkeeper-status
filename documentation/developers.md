@@ -13,7 +13,7 @@
 Code sample:
 
     (ns foo
-       (:require [puppetlabs.trapperkeeper.services.status.status-core :as status-core]))
+      (:require [puppetlabs.trapperkeeper.services.status.status-core :as status-core]))
 
     (schema/defn ^:always-validate
       v1-status-callback :- status-core/StatusCallbackResponse
@@ -24,11 +24,11 @@ Code sample:
     (defservice foo-service
       [[:StatusService register-status]]
       (init [this context]
-         (register-status "foo-service"
-            (status-core/get-artifact-version "puppetlabs" "foo")
-            1
-            v1-status-callback)
-         context))
+        (register-status "foo-service"
+          (status-core/get-artifact-version "puppetlabs" "foo")
+          1
+          v1-status-callback)
+        context))
 
 ## Details
 
