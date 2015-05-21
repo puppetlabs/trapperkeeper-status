@@ -11,25 +11,25 @@
 6. Define your status callback function.
 
 Code sample:
+```clj
+(ns foo
+  (:require [puppetlabs.trapperkeeper.services.status.status-core :as status-core]))
 
-    (ns foo
-      (:require [puppetlabs.trapperkeeper.services.status.status-core :as status-core]))
+(schema/defn ^:always-validate
+  v1-status-callback :- status-core/StatusCallbackResponse
+  [level :- status-core/ServiceStatusDetailLevel]
+  {:is-running :true
+   :status (get-basic-status-for-my-service-at-level level)})
 
-    (schema/defn ^:always-validate
-      v1-status-callback :- status-core/StatusCallbackResponse
-      [level :- status-core/ServiceStatusDetailLevel]
-      {:is-running :true
-       :status (get-basic-status-for-my-service-at-level level)})
-
-    (defservice foo-service
-      [[:StatusService register-status]]
-      (init [this context]
-        (register-status "foo-service"
-          (status-core/get-artifact-version "puppetlabs" "foo")
-          1
-          v1-status-callback)
-        context))
-
+(defservice foo-service
+  [[:StatusService register-status]]
+  (init [this context]
+    (register-status "foo-service"
+      (status-core/get-artifact-version "puppetlabs" "foo")
+      1
+      v1-status-callback)
+    context))
+```
 ## Details
 
 See [Query API](./query-api.md) and [Wire Format](./wire-formats.md) for details
