@@ -30,6 +30,33 @@ Code sample:
       v1-status-callback)
     context))
 ```
+
+
+## Implementing Your Status Function
+
+The `puppetlabs.trapperkeeper.services.status.status-core` namespace contains
+some utilities to aid in the implementation of your status functions.  In
+particular, the `level->int` function defines an ordering for status levels as
+`:critical < :info < :debug`, and the `compare-levels` function can be used to 
+compare status levels.  This is especially useful in conjunction with the 
+`cond->` macro from `clojure.core`.  Here's an example of how a status function 
+might be implemented to utilize the `compare-levels` function:
+```clj
+(require '[puppetlabs.trapperkeeper.services.status.status-core :as status-core])
+
+(defn my-status
+  [level]
+  (let [level>= (partial status-core/compare-levels >= level)]
+    {:is-running true
+     :status (cond-> {:this-is-critical "foo"}
+               (level>= :info) (assoc :bar "bar"
+                                      :baz "baz")
+               (level>= :debug) (assoc :x "x"
+                                       :y "y"
+                                       :z "y"))}))
+```
+
+
 ## Details
 
 See [Query API](./query-api.md) and [Wire Format](./wire-formats.md) for details

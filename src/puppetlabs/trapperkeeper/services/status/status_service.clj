@@ -8,7 +8,11 @@
 (defprotocol StatusService
   (register-status [this service-name service-version status-version status-fn]
     "Register a status callback function for a service by adding it to the
-    status service context."))
+    status service context.  status-fn must be a function of arity 1 which takes
+    the status level as a keyword and returns the status information for
+    the given level.  The return value of the callback function must satisfy
+    the puppetlabs.trapperkeeper.services.status.status-core/StatusCallbackResponse
+    schema."))
 
 (defservice status-service
   StatusService

@@ -3,9 +3,10 @@
             [cheshire.core :as json]
             [schema.test :as schema-test]
             [puppetlabs.http.client.sync :as http-client]
-            [puppetlabs.trapperkeeper.core :refer [defservice]]
+            [puppetlabs.trapperkeeper.core :refer [defservice service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
-            [puppetlabs.trapperkeeper.services.status.status-service :refer :all]
+            [puppetlabs.trapperkeeper.services.status.status-service :refer [status-service]]
+            [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
             [puppetlabs.trapperkeeper.services.webrouting.webrouting-service :as webrouting-service]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9-service]))
 
@@ -14,8 +15,7 @@
 (def status-service-config
   {:webserver {:port 8180
                :host "0.0.0.0"}
-   :web-router-service
-   {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}})
+   :web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}})
 
 (defmacro with-status-service
   "Macro to start the status service and its dependencies (jetty9 and
@@ -176,3 +176,46 @@
                 "message" (str "No status function with version 3 "
                             "found for service foo")}
               (json/parse-string (slurp (:body resp)))))))))
+
+(defn response->status
+  [resp]
+  (:status (json/parse-string (slurp (:body resp)) true)))
+
+(deftest compare-levels-test
+  (testing "use of compare-levels to implement a status function"
+    (let [my-status (fn [level]
+                      (let [level>= (partial status-core/compare-levels >= level)]
+                        {:is-running true
+                         :status (cond-> {:this-is-critical "foo"}
+                                   (level>= :info) (assoc :bar "bar"
+                                                          :baz "baz")
+                                   (level>= :debug) (assoc :x "x"
+                                                           :y "y"
+                                                           :z "y"))}))
+          my-service (service [[:StatusService register-status]]
+                       (init [this context]
+                         (register-status "my-service" "1.0.0" 1 my-status)))]
+      (with-status-service app
+        [my-service]
+        (testing "critical"
+          (let [resp (http-client/get "http://localhost:8180/status/v1/services/my-service?level=critical")]
+            (is (= 200 (:status resp)))
+            (is (= {:this-is-critical "foo"}
+                  (response->status resp)))))
+        (testing "info"
+          (let [resp (http-client/get "http://localhost:8180/status/v1/services/my-service?level=info")]
+            (is (= 200 (:status resp)))
+            (is (= {:this-is-critical "foo"
+                    :bar "bar"
+                    :baz "baz"}
+                  (response->status resp)))))
+        (testing "debug"
+          (let [resp (http-client/get "http://localhost:8180/status/v1/services/my-service?level=debug")]
+            (is (= 200 (:status resp)))
+            (is (= {:this-is-critical "foo"
+                    :bar "bar"
+                    :baz "baz"
+                    :x "x"
+                    :y "y"
+                    :z "y"}
+                  (response->status resp)))))))))
