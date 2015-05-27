@@ -95,6 +95,21 @@
                  version))))
     version))
 
+(defn level->int
+  "Returns an integer which represents the given status level.
+   The ordering of levels is :critical < :info < :debug."
+  [level]
+  (case level
+    :critical 0
+    :info 1
+    :debug 2))
+
+(defn compare-levels
+  "Converts the two status levels to integers using level->int and then
+   invokes f, passing the two integers as arguments.  Especially useful for
+   comparing two status levels."
+  [f level1 level2]
+  (f (level->int level1) (level->int level2)))
 
 (schema/defn service-status-map :- ServiceInfo
   [svc-version status-version status-fn]
