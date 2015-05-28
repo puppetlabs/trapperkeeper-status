@@ -13,12 +13,13 @@
 
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [cheshire "5.3.1"]
-                 [compojure "1.1.8" :exclusions [commons-io org.clojure/tools.macro]]
                  [prismatic/schema "0.4.0"]
-                 [ring/ring-json "0.3.1" :exclusions [commons-io]]
+                 [ring/ring-json "0.3.1" :exclusions [ring/ring-core]]
+                 [ring/ring-defaults "0.1.5"]
                  [slingshot "0.12.2"]
-                 [puppetlabs/kitchensink ~ks-version]
-                 [puppetlabs/trapperkeeper ~tk-version]
+                 [puppetlabs/kitchensink ~ks-version :exclusions [clj-time]]
+                 [puppetlabs/trapperkeeper ~tk-version :exclusions [clj-time org.clojure/tools.macro]]
+                 [puppetlabs/comidi "0.1.3"]
                  [grimradical/clj-semver "0.3.0"]
                  [trptcolin/versioneer "0.2.0"]]
 
@@ -31,8 +32,8 @@
                                      :sign-releases false}]]
 
   :profiles {:dev {:dependencies [[puppetlabs/http-client "0.4.4"]
-                                  [puppetlabs/trapperkeeper ~tk-version :classifier "test" :scope "test"]
-                                  [puppetlabs/trapperkeeper-webserver-jetty9 "1.3.1"]
-                                  [puppetlabs/kitchensink ~ks-version :classifier "test" :scope "test"]]}}
+                                  [puppetlabs/trapperkeeper ~tk-version :classifier "test" :exclusions [clj-time org.clojure/tools.macro]]
+                                  [puppetlabs/trapperkeeper-webserver-jetty9 "1.3.1" :exclusions [clj-time]]
+                                  [puppetlabs/kitchensink ~ks-version :classifier "test" :exclusions [clj-time]]]}}
 
   :plugins [[lein-release "1.0.5"]])
