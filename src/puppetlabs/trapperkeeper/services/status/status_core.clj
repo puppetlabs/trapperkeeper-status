@@ -1,9 +1,9 @@
 (ns puppetlabs.trapperkeeper.services.status.status-core
   (:require [schema.core :as schema]
-            [compojure.core :as compojure]
-            [compojure.handler :as handler]
             [ring.middleware.json :as ring-json]
+            [ring.middleware.defaults :as ring-defaults]
             [slingshot.slingshot :refer [throw+]]
+            [puppetlabs.comidi :as comidi]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
             [clj-semver.core :as semver]
@@ -207,32 +207,33 @@
 ;;; Compojure App
 
 (defn build-routes
-  [status-fns]
-  (handler/api
-    (compojure/routes
-      (compojure/context "/v1" []
-        (compojure/GET "/services" [:as {params :params}]
+  [path status-fns]
+  (comidi/context path
+    (comidi/context "/v1"
+      (comidi/GET "/services" [:as {params :params}]
+        (let [level (get-status-detail-level params)
+              statuses (call-status-fns status-fns level)]
+          {:status 200
+           :body statuses}))
+      (comidi/GET ["/services/" :service-name] [service-name :as {params :params}]
+        (if-let [service-info (get status-fns service-name)]
           (let [level (get-status-detail-level params)
-                statuses (call-status-fns status-fns level)]
+                service-status-version (get-service-status-version params)
+                status (call-status-fn-for-service service-name
+                         service-info
+                         level
+                         service-status-version)]
             {:status 200
-             :body statuses}))
-        (compojure/GET "/services/:service-name" [service-name :as {params :params}]
-          (if-let [service-info (get status-fns service-name)]
-            (let [level (get-status-detail-level params)
-                  service-status-version (get-service-status-version params)
-                  status (call-status-fn-for-service service-name
-                           service-info
-                           level
-                           service-status-version)]
-              {:status 200
-               :body (assoc status :service_name service-name)})
-            {:status 404
-             :body {:type :service-not-found
-                    :message (str "No status information found for service "
-                               service-name)}}))))))
+             :body (assoc status :service_name service-name)})
+          {:status 404
+           :body {:type :service-not-found
+                  :message (str "No status information found for service "
+                             service-name)}})))))
 
-(defn build-handler [status-fns]
-  (-> (build-routes status-fns)
+(defn build-handler [path status-fns]
+  (-> (build-routes path status-fns)
+    comidi/routes->handler
+    (ring-defaults/wrap-defaults ring-defaults/api-defaults)
     ringutils/wrap-request-data-errors
     ringutils/wrap-schema-errors
     ringutils/wrap-errors
