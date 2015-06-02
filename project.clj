@@ -12,7 +12,6 @@
   :exclusions [org.clojure/clojure]
 
   :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/java.jdbc "0.3.7"]
                  [cheshire "5.3.1"]
                  [prismatic/schema "0.4.0"]
                  [ring/ring-json "0.3.1" :exclusions [ring/ring-core]]
