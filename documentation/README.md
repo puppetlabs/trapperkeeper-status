@@ -20,7 +20,3 @@ Things that are not finished yet:
   devices that don't provide sophisticated SSL configuration
   capabilities (see TK-176).
 * Finalize internal schemas, improve JSON serialization code.
-* Improve developer experience a bit; e.g. maybe provide a
-  numeric representation of the detail levels to make it
-  easier for service authors to add data to their status
-  based on the detail level (see TK-217).
