@@ -27,12 +27,10 @@
 (def status-proxy-service-config
   {:webserver          {:port 8181
                         :host "0.0.0.0"}
-   :status-proxy       {:target-host    "0.0.0.0"
-                        :target-port    9001
-                        :target-url     "/ssl-status"
-                        :target-options {:ssl-config common-ssl-config
-                                         :scheme :https}}
+   :status-proxy       {:proxy-target-url "https://0.0.0.0:9001/ssl-status"
+                        :ssl-opts common-ssl-config}
    :web-router-service {:puppetlabs.trapperkeeper.services.status.status-proxy-service/status-proxy-service "/status-proxy"}})
+
 
 (defservice foo-service
   [[:StatusService register-status]]

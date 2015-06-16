@@ -32,16 +32,3 @@
     (log/infof "Registering status callback function for %s service" service-name)
     (core/update-status-context (:status-fns (service-context this))
       service-name service-version status-version status-fn)))
-
-(defservice status-proxy-service
-  [[:WebroutingService add-proxy-route]
-   [:ConfigService get-in-config]]
-  (init [this context]
-    (add-proxy-route
-      this
-      {:host (get-in-config [:status-proxy :target-host])
-       :port (get-in-config [:status-proxy :target-port])
-       :path (get-in-config [:status-proxy :target-url])}
-      (get-in-config [:status-proxy :target-options]))
-    (log/info "Initializing status service proxy")
-    context))

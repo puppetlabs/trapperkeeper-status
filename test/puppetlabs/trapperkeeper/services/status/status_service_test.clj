@@ -5,7 +5,7 @@
             [puppetlabs.http.client.sync :as http-client]
             [puppetlabs.trapperkeeper.core :refer [defservice service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
-            [puppetlabs.trapperkeeper.services.status.status-service :refer [status-service status-proxy-service]]
+            [puppetlabs.trapperkeeper.services.status.status-service :refer [status-service]]
             [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
             [puppetlabs.trapperkeeper.services.webrouting.webrouting-service :as webrouting-service]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9-service]))
