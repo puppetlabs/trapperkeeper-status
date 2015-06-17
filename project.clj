@@ -31,7 +31,7 @@
                                      :password :env/clojars_jenkins_password
                                      :sign-releases false}]]
 
-  :profiles {:dev {:dependencies [[puppetlabs/http-client "0.4.4"]
+  :profiles {:dev {:dependencies [[puppetlabs/http-client "0.4.4" :exclusions [commons-io]]
                                   [puppetlabs/trapperkeeper ~tk-version :classifier "test" :exclusions [clj-time org.clojure/tools.macro]]
                                   [puppetlabs/trapperkeeper-webserver-jetty9 "1.3.1" :exclusions [clj-time]]
                                   [puppetlabs/kitchensink ~ks-version :classifier "test" :exclusions [clj-time]]]}}
