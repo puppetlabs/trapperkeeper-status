@@ -7,6 +7,7 @@
   [[:WebroutingService add-proxy-route]
    [:ConfigService get-in-config]]
   (init [this context]
+    (log/info "Initializing status service proxy")
     (let [target-url (URL. (get-in-config [:status-proxy :proxy-target-url]))
           host (.getHost target-url)
           port (.getPort target-url)
@@ -18,5 +19,4 @@
          :path path}
         {:ssl-config (get-in-config [:status-proxy :ssl-opts])
          :scheme     :https}))
-    (log/info "Initializing status service proxy")
     context))

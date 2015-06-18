@@ -13,10 +13,11 @@
 
 (use-fixtures :once schema-test/validate-schemas)
 
+(def dev-resources "./dev-resources/puppetlabs/trapperkeeper-status/status-proxy-service-test")
 (def common-ssl-config
-  {:ssl-cert    "./dev-resources/config/ssl/certs/localhost.pem"
-   :ssl-key     "./dev-resources/config/ssl/private_keys/localhost.pem"
-   :ssl-ca-cert "./dev-resources/config/ssl/certs/ca.pem"})
+  {:ssl-cert    (str dev-resources "/ssl/certs/localhost.pem")
+   :ssl-key     (str dev-resources "/ssl/private_keys/localhost.pem")
+   :ssl-ca-cert (str dev-resources "/ssl/certs/ca.pem")})
 
 (def ssl-status-service-config
   {:webserver (merge common-ssl-config
