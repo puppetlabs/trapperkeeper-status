@@ -57,6 +57,16 @@
     (register-status "fail" "4.2.0" 1 (fn [level] {:status "wheee", :state :error}))
     context))
 
+(defservice slow-service
+  [[:StatusService register-status]]
+  (init [this context]
+        (register-status "slow" "0.1.0" 1 (fn [level] (Thread/sleep 2000)))))
+
+(defservice broken-service
+  [[:StatusService register-status]]
+  (init [this context]
+        (register-status "broken" "0.1.0" 1 (fn [level] (throw (Exception. "don't"))))))
+
 (deftest rollup-status-endpoint-test
   (with-status-service
     app
@@ -147,7 +157,7 @@
                 "service_status_version" 1
                 "state" "unknown"
                 "detail_level" "info"
-                "status" nil
+                "status" "Status check malformed: (not (map? \"baz\"))"
                 "service_name" "baz"}
               (json/parse-string (slurp (:body resp)))))))
     (testing "returns a 404 for service not registered with the status service"
@@ -177,6 +187,36 @@
         (is (= 200 status)))
       (let [{:keys [status]} (http-client/get "http://localhost:8180/status/v1/services")]
         (is (= 200 status))))))
+
+(deftest status-check-error-handling-test
+  (with-status-service
+    app
+    [slow-service
+     broken-service
+     baz-service]
+  (testing "handles case when a status check times out"
+    (with-redefs [puppetlabs.trapperkeeper.services.status.status-core/check-timeout (constantly 1)]
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services/slow?level=critical")
+            body (json/parse-string (slurp (:body resp)))]
+        (is (= 503 (:status resp)))
+        (is (= "unknown"
+               (get body "state")))
+        (is (re-find #"timed out" (get body "status"))))))
+
+  (testing "handles case when a status check throws an exception"
+    (let [resp (http-client/get "http://localhost:8180/status/v1/services/broken?level=critical")
+            body (json/parse-string (slurp (:body resp)))]
+        (is (= 503 (:status resp)))
+        (is (= "unknown"
+               (get body "state")))
+        (is (re-find #"exception.*don't" (get body "status")))))
+  (testing "handles case when a status check returns a non-conforming result"
+    (let [resp (http-client/get "http://localhost:8180/status/v1/services/baz?level=critical")
+          body (json/parse-string (slurp (:body resp)))]
+      (is (= 503 (:status resp)))
+      (is (= "unknown"
+             (get body "state")))
+      (is (re-find #"malformed" (get body "status")))))))
 
 (deftest error-handling-test
   (with-status-service app

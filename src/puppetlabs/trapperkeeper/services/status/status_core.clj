@@ -1,5 +1,6 @@
 (ns puppetlabs.trapperkeeper.services.status.status-core
   (:require [schema.core :as schema]
+            [schema.utils :refer [validation-error-explain]]
             [ring.middleware.json :as ring-json]
             [ring.middleware.defaults :as ring-defaults]
             [slingshot.slingshot :refer [throw+]]
@@ -22,12 +23,14 @@
   {:state State
    :status schema/Any})
 
+(def StatusFn (schema/make-fn-schema StatusCallbackResponse ServiceStatusDetailLevel))
+
 (def ServiceInfo
   {:service-version schema/Str
    :service-status-version schema/Int
    ;; Note that while this specifies the input and output for the status
    ;; function for each service, it does not actually validate these
-   :status-fn (schema/make-fn-schema StatusCallbackResponse ServiceStatusDetailLevel)})
+   :status-fn StatusFn})
 
 (def ServicesInfo
   {schema/Str [ServiceInfo]})
@@ -51,6 +54,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
+
+(schema/defn check-timeout
+  "Given a status level keyword, returns a number of seconds to use as a timeout
+  when calling a status function."
+  [level :- ServiceStatusDetailLevel] :- schema/Int
+  (case level
+    :critical 5
+    :info 60
+    :debug 60))
 
 (defn validate-callback-registration
   [status-fns svc-name svc-version status-version]
@@ -135,6 +147,47 @@
   (let [status-map (service-status-map svc-version status-version status-fn)]
     (swap! status-fns-atom update-in [svc-name] conj status-map)))
 
+(defmacro with-timeout [timeout-s default & body]
+  `(let [f# (future (do ~@body))
+         result# (deref f# (* 1000 ~timeout-s) ~default)]
+     (future-cancel f#)
+     result#))
+
+(defn- maybe-explain
+  "Given the result of a call to schema.core/check, potentially unwrap it with
+  validation-error-explain if it is a ValidationError object. Otherwise, pass
+  the argument through."
+  [schema-failure]
+  (if (instance? schema.utils.ValidationError schema-failure)
+    (validation-error-explain schema-failure)
+    schema-failure))
+
+(schema/defn ^:always-validate guarded-status-fn-call
+  "Given a status check function, a status detail level, and a timeout in
+  seconds, this function calls the status function and handles three types of
+  errors:
+
+  * Status check timed out
+  * Status check threw an Exception
+  * Status check returned a form that doesn't match the StatusCallbackResponse schema
+
+  In each error case, :state is set to :unknown and :status is set to a
+  string describing the error."
+  [status-fn :- StatusFn
+   level :- ServiceStatusDetailLevel
+   timeout :- schema/Int] :- StatusCallbackResponse
+   (let [unknown-response (fn [status] {:state :unknown
+                                        :status status})
+         timeout-response (unknown-response (format "Status check timed out after %s seconds" timeout))]
+     (with-timeout timeout timeout-response
+       (try
+         (let [status (status-fn level)]
+           (if-let [schema-failure (schema/check StatusCallbackResponse status)]
+             (unknown-response (format "Status check malformed: %s" (maybe-explain schema-failure)))
+             status))
+         (catch Exception e
+           (unknown-response (format "Status check threw an exception: %s" e)))))))
+
 (schema/defn ^:always-validate call-status-fn-for-service :- ServiceStatus
   "Construct a map with the service's version, the version of the service's
   status, the detail level, and the results of calling the status function
@@ -150,7 +203,7 @@
     service :- [ServiceInfo]
     level :- ServiceStatusDetailLevel
     service-status-version :- (schema/maybe schema/Int)]
-    (let [status (if (nil? service-status-version)
+  (let [status (if (nil? service-status-version)
                    (last (sort-by :service-status-version service))
                    (first (filter #(= (:service-status-version %)
                                     service-status-version)
@@ -161,7 +214,8 @@
                             service-status-version
                             " found for service "
                             service-name)}))
-      (let [callback-resp ((:status-fn status) level)
+      (let [timeout (check-timeout level)
+            callback-resp (guarded-status-fn-call (:status-fn status) level timeout)
             data (:status callback-resp)
             state (if-not (schema/check State (:state callback-resp))
                          (:state callback-resp)
