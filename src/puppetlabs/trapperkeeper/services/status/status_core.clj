@@ -234,8 +234,8 @@
 (defn build-handler [path status-fns]
   (-> (build-routes path status-fns)
     comidi/routes->handler
-    (ring-defaults/wrap-defaults ring-defaults/api-defaults)
     ringutils/wrap-request-data-errors
     ringutils/wrap-schema-errors
     ringutils/wrap-errors
-    ring-json/wrap-json-response))
+    ring-json/wrap-json-response
+    (ring-defaults/wrap-defaults ring-defaults/api-defaults)))

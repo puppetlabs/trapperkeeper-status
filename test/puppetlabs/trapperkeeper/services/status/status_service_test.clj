@@ -219,3 +219,10 @@
                     :y "y"
                     :z "y"}
                   (response->status resp)))))))))
+
+(deftest content-type-test
+  (testing "responses have the 'application/json' content type set"
+    (with-status-service app
+      [foo-service]
+      (let [{:keys [headers]} (http-client/get "http://localhost:8180/status/v1/services/foo")]
+        (is (re-find #"^application/json" (get headers "content-type")))))))
