@@ -225,6 +225,7 @@
                          service-status-version)]
             {:status 200
              :body (assoc status :service_name service-name)})
+          ;; else (no service with that name)
           {:status 404
            :body {:type :service-not-found
                   :message (str "No status information found for service "
