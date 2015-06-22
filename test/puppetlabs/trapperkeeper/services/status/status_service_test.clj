@@ -42,13 +42,19 @@
   [[:StatusService register-status]]
   (init [this context]
     (register-status "bar" "0.1.0" 1 (fn [level] {:status (str "bar status 1 " level)
-                                                  :is-running :false}))
+                                                  :is-running :true}))
     context))
 
 (defservice baz-service
   [[:StatusService register-status]]
   (init [this context]
     (register-status "baz" "0.2.0" 1 (fn [level] "baz"))
+    context))
+
+(defservice fail-service
+  [[:StatusService register-status]]
+  (init [this context]
+    (register-status "fail" "4.2.0" 1 (fn [level] {:status "wheee", :is-running :false}))
     context))
 
 (deftest rollup-status-endpoint-test
@@ -62,7 +68,7 @@
         (is (= 200 (:status resp)))
         (is (= {"bar" {"service_version" "0.1.0"
                        "service_status_version" 1
-                       "is_running" "false"
+                       "is_running" "true"
                        "detail_level" "info"
                        "status" "bar status 1 :info"}
                 "foo" {"service_version" "1.1.0"
@@ -77,7 +83,7 @@
         (is (= 200 (:status resp)))
         (is (= {"bar" {"service_version" "0.1.0"
                        "service_status_version" 1
-                       "is_running" "false"
+                       "is_running" "true"
                        "detail_level" "debug"
                        "status" "bar status 1 :debug"}
                 "foo" {"service_version" "1.1.0"
@@ -136,7 +142,7 @@
               (json/parse-string (slurp (:body resp)))))))
     (testing "returns unknown for is_running if not provided in callback fn"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/baz")]
-        (is (= 200 (:status resp)))
+        (is (= 503 (:status resp)))
         (is (= {"service_version" "0.2.0"
                 "service_status_version" 1
                 "is_running" "unknown"
@@ -150,6 +156,27 @@
         (is (= {"type" "service-not-found"
                 "message" "No status information found for service notfound"}
               (json/parse-string (slurp (:body resp)))))))))
+
+(deftest status-code-test
+    (with-status-service app
+      [bar-service fail-service]
+      (testing "returns 503 response code when a service is not running"
+        (let [{:keys [status]} (http-client/get "http://localhost:8180/status/v1/services/fail")]
+          (is (= 503 status)))
+        (let [{:keys [status]} (http-client/get "http://localhost:8180/status/v1/services")]
+          (is (= 503 status))))
+
+      (testing "returns a 200 response code for the service that is running"
+        (let [{:keys [status]} (http-client/get "http://localhost:8180/status/v1/services/bar")]
+          (is (= 200 status)))))
+
+  (testing "returns 200 response code when all services are running"
+    (with-status-service app
+      [bar-service foo-service]
+      (let [{:keys [status]} (http-client/get "http://localhost:8180/status/v1/services/bar")]
+        (is (= 200 status)))
+      (let [{:keys [status]} (http-client/get "http://localhost:8180/status/v1/services")]
+        (is (= 200 status))))))
 
 (deftest error-handling-test
   (with-status-service app
@@ -185,7 +212,7 @@
   (testing "use of compare-levels to implement a status function"
     (let [my-status (fn [level]
                       (let [level>= (partial status-core/compare-levels >= level)]
-                        {:is-running true
+                        {:is-running :true
                          :status (cond-> {:this-is-critical "foo"}
                                    (level>= :info) (assoc :bar "bar"
                                                           :baz "baz")

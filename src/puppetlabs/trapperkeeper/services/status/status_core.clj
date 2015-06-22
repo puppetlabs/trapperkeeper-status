@@ -74,6 +74,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
+(schema/defn ^:always-validate nominal?
+  [status :- ServiceStatus]
+  (= (:is_running status) :true))
+
+(schema/defn ^:always-validate all-nominal?
+  [statuses :- ServicesStatus]
+  (every? nominal? (vals statuses)))
+
 (schema/defn ^:always-validate
   get-artifact-version :- SemVerVersion
   "Utility function that services can use to get a value to pass in as their
@@ -213,7 +221,7 @@
       (comidi/GET "/services" [:as {params :params}]
         (let [level (get-status-detail-level params)
               statuses (call-status-fns status-fns level)]
-          {:status 200
+          {:status (if (all-nominal? statuses) 200 503)
            :body statuses}))
       (comidi/GET ["/services/" :service-name] [service-name :as {params :params}]
         (if-let [service-info (get status-fns service-name)]
@@ -223,7 +231,7 @@
                          service-info
                          level
                          service-status-version)]
-            {:status 200
+            {:status (if (nominal? status) 200 503)
              :body (assoc status :service_name service-name)})
           {:status 404
            :body {:type :service-not-found
