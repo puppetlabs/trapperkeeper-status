@@ -7,7 +7,7 @@ is not allowed anywhere in the status data.
         "service_version": <service-version>,
         "service_status_version": <service-status-version>,
         "detail_level": <detail-level>,
-        "is_running": <service-state>,
+        "state": <service-state>,
         "status": <any>
         },
      <service-name>: {
@@ -43,7 +43,7 @@ It indicates the version number of each service that is providing status informa
  Services may provide slightly more detail at the `"info"` level.  Services may
  provide very detailed information, suitable for debugging, at the `"debug"` level.
 
-`<service-state>` is a String from the following enumeration: (`"true"`, `"false"`,
+`<service-state>` is a String from the following enumeration: (`"running"`, `"error"`,
  `"unknown"`).  `"unknown"` will be used when there is a problem that is preventing
  the Status Service from getting accurate status information from the specified
  service.

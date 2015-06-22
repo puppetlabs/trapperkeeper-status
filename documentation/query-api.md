@@ -48,7 +48,7 @@ The response format will be a JSON _Object_, which will look something like this
         "service_version": <service-version>,
         "service_status_version": <service-status-version>,
         "detail_level": <detail-level>,
-        "is_running": <service-state>,
+        "state": <service-state>,
         "status": <any>
         },
      <service-name>: {
@@ -79,7 +79,7 @@ Get the service status of all registered services in an application:
     {
         "puppet-server": {
             "detail_level": "info",
-            "is_running": "true",
+            "state": "running",
             "service_status_version": 1,
             "service_version": "1.0.9-SNAPSHOT",
             "status": {
@@ -90,7 +90,7 @@ Get the service status of all registered services in an application:
 
         "other-service": {
             "detail_level": "info",
-            "is_running": "true",
+            "state": "running",
             "service_status_version": 2,
             "service_version": "0.0.1-SNAPSHOT",
             "status": {
@@ -108,7 +108,7 @@ Get the service status of all registered services in an application, at a
     {
         "puppet-server": {
             "detail_level": "critical",
-            "is_running": "true",
+            "state": "running",
             "service_status_version": 1,
             "service_version": "1.0.9-SNAPSHOT",
             "status": null
@@ -116,7 +116,7 @@ Get the service status of all registered services in an application, at a
 
         "other-service": {
             "detail_level": "info",
-            "is_running": "true",
+            "state": "running",
             "service_status_version": 2,
             "service_version": "0.0.1-SNAPSHOT",
             "status": null
@@ -148,7 +148,7 @@ which will look something like this:
         "service_version": <service-version>,
         "service_status_version": <service-status-version>,
         "detail_level": <detail-level>,
-        "is_running": <service-state>,
+        "state": <service-state>,
         "status": <any>
         }
     }
@@ -166,7 +166,7 @@ Get the service status for a specified service in the application:
     {
         "other-service": {
             "detail_level": "info",
-            "is_running": "true",
+            "state": "running",
             "service_status_version": 2,
             "service_version": "0.0.1-SNAPSHOT",
             "status": {
@@ -184,7 +184,7 @@ version:
     {
         "other-service": {
             "detail_level": "info",
-            "is_running": "true",
+            "state": "running",
             "service_status_version": 1,
             "service_version": "0.0.1-SNAPSHOT",
             "status": {
@@ -202,7 +202,7 @@ version and a specific detail level:
     {
         "other-service": {
             "detail_level": "debug",
-            "is_running": "true",
+            "state": "running",
             "service_status_version": 2,
             "service_version": "0.0.1-SNAPSHOT",
             "status": {
