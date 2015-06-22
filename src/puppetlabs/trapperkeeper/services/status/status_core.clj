@@ -15,11 +15,11 @@
 (def ServiceStatusDetailLevel
   (schema/enum :critical :info :debug))
 
-(def IsRunning
-  (schema/enum :true :false :unknown))
+(def State
+  (schema/enum :running :error :unknown))
 
 (def StatusCallbackResponse
-  {:is-running IsRunning
+  {:state State
    :status schema/Any})
 
 (def ServiceInfo
@@ -39,7 +39,7 @@
 (def ServiceStatus
   {:service_version schema/Str
    :service_status_version schema/Int
-   :is_running IsRunning
+   :state State
    :detail_level ServiceStatusDetailLevel
    :status schema/Any})
 
@@ -76,7 +76,7 @@
 
 (schema/defn ^:always-validate nominal?
   [status :- ServiceStatus]
-  (= (:is_running status) :true))
+  (= (:state status) :running))
 
 (schema/defn ^:always-validate all-nominal?
   [statuses :- ServicesStatus]
@@ -140,8 +140,8 @@
   status, the detail level, and the results of calling the status function
   corresponding to the status version specified (or the most recent version if
   not). If the response from the callback function does not include an
-  :is-running key, or returns a value other than true or false, return
-  :unknown for :is-running."
+  :state key, or returns a value other than true or false, return
+  :unknown for :state."
   ([service-name :- schema/Str
     service :- [ServiceInfo]
     level :- ServiceStatusDetailLevel]
@@ -163,13 +163,13 @@
                             service-name)}))
       (let [callback-resp ((:status-fn status) level)
             data (:status callback-resp)
-            is-running (if-not (schema/check IsRunning (:is-running callback-resp))
-                         (:is-running callback-resp)
+            state (if-not (schema/check State (:state callback-resp))
+                         (:state callback-resp)
                          :unknown)]
         {:service_version (:service-version status)
          :service_status_version (:service-status-version status)
          :detail_level level
-         :is_running is-running
+         :state state
          :status data}))))
 
 (schema/defn ^:always-validate call-status-fns :- ServicesStatus

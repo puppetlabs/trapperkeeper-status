@@ -18,7 +18,7 @@ Code sample:
 (schema/defn ^:always-validate
   v1-status-callback :- status-core/StatusCallbackResponse
   [level :- status-core/ServiceStatusDetailLevel]
-  {:is-running :true
+  {:state :running
    :status (get-basic-status-for-my-service-at-level level)})
 
 (defservice foo-service
@@ -47,7 +47,7 @@ might be implemented to utilize the `compare-levels` function:
 (defn my-status
   [level]
   (let [level>= (partial status-core/compare-levels >= level)]
-    {:is-running true
+    {:state running
      :status (cond-> {:this-is-critical "foo"}
                (level>= :info) (assoc :bar "bar"
                                       :baz "baz")

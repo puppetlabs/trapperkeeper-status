@@ -33,16 +33,16 @@
   [[:StatusService register-status]]
   (init [this context]
     (register-status "foo" "1.1.0" 1 (fn [level] {:status (str "foo status 1 " level)
-                                                  :is-running :true}))
+                                                  :state :running}))
     (register-status "foo" "1.1.0" 2 (fn [level] {:status (str "foo status 2 " level)
-                                                  :is-running :true}))
+                                                  :state :running}))
     context))
 
 (defservice bar-service
   [[:StatusService register-status]]
   (init [this context]
     (register-status "bar" "0.1.0" 1 (fn [level] {:status (str "bar status 1 " level)
-                                                  :is-running :true}))
+                                                  :state :running}))
     context))
 
 (defservice baz-service
@@ -54,7 +54,7 @@
 (defservice fail-service
   [[:StatusService register-status]]
   (init [this context]
-    (register-status "fail" "4.2.0" 1 (fn [level] {:status "wheee", :is-running :false}))
+    (register-status "fail" "4.2.0" 1 (fn [level] {:status "wheee", :state :error}))
     context))
 
 (deftest rollup-status-endpoint-test
@@ -68,12 +68,12 @@
         (is (= 200 (:status resp)))
         (is (= {"bar" {"service_version" "0.1.0"
                        "service_status_version" 1
-                       "is_running" "true"
+                       "state" "running"
                        "detail_level" "info"
                        "status" "bar status 1 :info"}
                 "foo" {"service_version" "1.1.0"
                        "service_status_version" 2
-                       "is_running" "true"
+                       "state" "running"
                        "detail_level" "info"
                        "status" "foo status 2 :info"}}
               body))))
@@ -83,12 +83,12 @@
         (is (= 200 (:status resp)))
         (is (= {"bar" {"service_version" "0.1.0"
                        "service_status_version" 1
-                       "is_running" "true"
+                       "state" "running"
                        "detail_level" "debug"
                        "status" "bar status 1 :debug"}
                 "foo" {"service_version" "1.1.0"
                        "service_status_version" 2
-                       "is_running" "true"
+                       "state" "running"
                        "detail_level" "debug"
                        "status" "foo status 2 :debug"}}
               body))))))
@@ -115,7 +115,7 @@
         (is (= 200 (:status resp)))
         (is (= {"service_version" "1.1.0"
                 "service_status_version" 2
-                "is_running" "true"
+                "state" "running"
                 "detail_level" "info"
                 "status" "foo status 2 :info"
                 "service_name" "foo"}
@@ -125,7 +125,7 @@
         (is (= 200 (:status resp)))
         (is (= {"service_version" "1.1.0"
                 "service_status_version" 2
-                "is_running" "true"
+                "state" "running"
                 "detail_level" "critical"
                 "status" "foo status 2 :critical"
                 "service_name" "foo"}
@@ -135,17 +135,17 @@
         (is (= 200 (:status resp)))
         (is (= {"service_version" "1.1.0"
                 "service_status_version" 1
-                "is_running" "true"
+                "state" "running"
                 "detail_level" "info"
                 "status" "foo status 1 :info"
                 "service_name" "foo"}
               (json/parse-string (slurp (:body resp)))))))
-    (testing "returns unknown for is_running if not provided in callback fn"
+    (testing "returns unknown for state if not provided in callback fn"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/baz")]
         (is (= 503 (:status resp)))
         (is (= {"service_version" "0.2.0"
                 "service_status_version" 1
-                "is_running" "unknown"
+                "state" "unknown"
                 "detail_level" "info"
                 "status" nil
                 "service_name" "baz"}
@@ -212,7 +212,7 @@
   (testing "use of compare-levels to implement a status function"
     (let [my-status (fn [level]
                       (let [level>= (partial status-core/compare-levels >= level)]
-                        {:is-running :true
+                        {:state :running
                          :status (cond-> {:this-is-critical "foo"}
                                    (level>= :info) (assoc :bar "bar"
                                                           :baz "baz")
