@@ -15,7 +15,7 @@
                  [cheshire "5.3.1"]
                  [prismatic/schema "0.4.0"]
                  [ring/ring-json "0.3.1" :exclusions [ring/ring-core]]
-                 [ring/ring-defaults "0.1.5"]
+                 [ring/ring-defaults "0.1.5" :exclusions [javax.servlet/servlet-api]]
                  [slingshot "0.12.2"]
                  [puppetlabs/kitchensink ~ks-version :exclusions [clj-time]]
                  [puppetlabs/trapperkeeper ~tk-version :exclusions [clj-time org.clojure/tools.macro]]
