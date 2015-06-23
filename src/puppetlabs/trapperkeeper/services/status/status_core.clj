@@ -233,6 +233,7 @@
                          service-status-version)]
             {:status (if (nominal? status) 200 503)
              :body (assoc status :service_name service-name)})
+          ;; else (no service with that name)
           {:status 404
            :body {:type :service-not-found
                   :message (str "No status information found for service "
@@ -241,8 +242,8 @@
 (defn build-handler [path status-fns]
   (-> (build-routes path status-fns)
     comidi/routes->handler
-    (ring-defaults/wrap-defaults ring-defaults/api-defaults)
     ringutils/wrap-request-data-errors
     ringutils/wrap-schema-errors
     ringutils/wrap-errors
-    ring-json/wrap-json-response))
+    ring-json/wrap-json-response
+    (ring-defaults/wrap-defaults ring-defaults/api-defaults)))
