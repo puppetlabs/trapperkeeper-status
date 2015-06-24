@@ -110,14 +110,14 @@ status-proxy: {
 }
 ```
 
-The import things to note are:
+The important things to note are:
 * The status proxy service and the status service are running on separate
   webservers and ports
-* There is a new section in the config, `status-proxy`
-  * With a url pointing the proxy to the status service
+* There is a new section in the config, `status-proxy`, with:
+  * a url pointing the proxy to the status service
   * SSL information that matches the SSL information for the webserver that the
     status service is running on
 
-With this configuration, requests that would normally be made to 
-`https://localhost:9001/status` with and SSL cert can be made to 
+With this configuration, requests that would normally be made to
+`https://localhost:9001/status` with an SSL cert can be made to
 `localhost:8080/status-proxy` over plaintext
