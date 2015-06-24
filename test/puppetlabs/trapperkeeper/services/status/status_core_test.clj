@@ -49,3 +49,33 @@
             (update-status-context status-fns "foo"
               "1.2.0" 3
               (fn [] "foo repeat")))))))
+
+(deftest error-handling-test
+  (testing "when there is an error checking status"
+
+    (let [status-fns (atom {})]
+      (testing "and it is a bad callback result schema"
+        (update-status-context status-fns "foo" "1.1.0" 1 (fn [_] {:totally :nonconforming}))
+        (let [result (call-status-fn-for-service "foo" (get @status-fns "foo") :debug)]
+          (testing "status is set to explain schema error"
+            (is (re-find #"missing-required-key" (pr-str result))))
+          (testing "state is set properly"
+            (is (= :unknown (:state result))))))
+
+      (testing "and it is from a timeout"
+        (update-status-context status-fns "quux" "1.1.0" 1 (fn [_] (Thread/sleep 2000) {:is-running :true
+                                                                                        :status "aw yis"}))
+        (with-redefs [puppetlabs.trapperkeeper.services.status.status-core/check-timeout (constantly 1)]
+          (let [result (call-status-fn-for-service "quux" (get @status-fns "quux") :debug)]
+            (testing "state is set properly"
+              (is (= :unknown (:state result))))
+            (testing "status is set to explain timeout"
+              (is (= "Status check timed out after 1 seconds" (:status result)))))))
+
+      (testing "and it is from the status reporting function"
+        (update-status-context status-fns "bar" "1.1.0" 1 (fn [_] (throw (Exception. "don't"))))
+          (let [result (call-status-fn-for-service "bar" (get @status-fns "bar") :debug)]
+            (testing "status contains exception"
+              (is (re-find #"don't" (pr-str result))))
+            (testing "state is set properly"
+              (= :unknown (:state result))))))))
