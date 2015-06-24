@@ -72,42 +72,42 @@
           (let [resp (http-client/get "http://localhost:8181/status-proxy/v1/services")
                 body (json/parse-string (slurp (:body resp)))]
             (is (= 200 (:status resp)))
-            (is (= {"bar" {"service_version" "0.1.0"
+            (is (= {"bar" {"service_version"        "0.1.0"
                            "service_status_version" 1
-                           "state" "running"
-                           "detail_level" "info"
-                           "status" "bar status 1 :info"}
-                    "foo" {"service_version" "1.1.0"
+                           "state"                  "running"
+                           "detail_level"           "info"
+                           "status"                 "bar status 1 :info"}
+                    "foo" {"service_version"        "1.1.0"
                            "service_status_version" 2
-                           "state" "running"
-                           "detail_level" "info"
-                           "status" "foo status 2 :info"}}
+                           "state"                  "running"
+                           "detail_level"           "info"
+                           "status"                 "foo status 2 :info"}}
                   body))))
         (testing "proxying url with query param"
           (let [resp (http-client/get "http://localhost:8181/status-proxy/v1/services?level=debug")
                 body (json/parse-string (slurp (:body resp)))]
             (is (= 200 (:status resp)))
-            (is (= {"bar" {"service_version" "0.1.0"
+            (is (= {"bar" {"service_version"        "0.1.0"
                            "service_status_version" 1
-                           "state" "running"
-                           "detail_level" "debug"
-                           "status" "bar status 1 :debug"}
-                    "foo" {"service_version" "1.1.0"
+                           "state"                  "running"
+                           "detail_level"           "debug"
+                           "status"                 "bar status 1 :debug"}
+                    "foo" {"service_version"        "1.1.0"
                            "service_status_version" 2
-                           "state" "running"
-                           "detail_level" "debug"
-                           "status" "foo status 2 :debug"}}
+                           "state"                  "running"
+                           "detail_level"           "debug"
+                           "status"                 "foo status 2 :debug"}}
                   body))))
         (testing "proxying specific service"
           (let [resp (http-client/get "http://localhost:8181/status-proxy/v1/services/foo")
                 body (json/parse-string (slurp (:body resp)))]
             (is (= 200 (:status resp)))
-            (is (= {"service_version" "1.1.0"
+            (is (= {"service_version"        "1.1.0"
                     "service_status_version" 2
-                    "state" "running"
-                    "detail_level" "info"
-                    "status" "foo status 2 :info"
-                    "service_name" "foo"}
+                    "state"                  "running"
+                    "detail_level"           "info"
+                    "status"                 "foo status 2 :info"
+                    "service_name"           "foo"}
                   body))))))))
 
 (defn count-ring-handler
