@@ -37,16 +37,16 @@
   [[:StatusService register-status]]
   (init [this context]
     (register-status "foo" "1.1.0" 1 (fn [level] {:status (str "foo status 1 " level)
-                                                  :is-running :true}))
+                                                  :state :running}))
     (register-status "foo" "1.1.0" 2 (fn [level] {:status (str "foo status 2 " level)
-                                                  :is-running :true}))
+                                                  :state :running}))
     context))
 
 (defservice bar-service
   [[:StatusService register-status]]
   (init [this context]
     (register-status "bar" "0.1.0" 1 (fn [level] {:status (str "bar status 1 " level)
-                                                  :is-running :false}))
+                                                  :state :running}))
     context))
 
 (deftest proxy-ssl-status-endpoint-test
@@ -74,12 +74,12 @@
             (is (= 200 (:status resp)))
             (is (= {"bar" {"service_version"        "0.1.0"
                            "service_status_version" 1
-                           "is_running"             "false"
+                           "state"                  "running"
                            "detail_level"           "info"
                            "status"                 "bar status 1 :info"}
                     "foo" {"service_version"        "1.1.0"
                            "service_status_version" 2
-                           "is_running"             "true"
+                           "state"                  "running"
                            "detail_level"           "info"
                            "status"                 "foo status 2 :info"}}
                   body))))
@@ -89,12 +89,12 @@
             (is (= 200 (:status resp)))
             (is (= {"bar" {"service_version"        "0.1.0"
                            "service_status_version" 1
-                           "is_running"             "false"
+                           "state"                  "running"
                            "detail_level"           "debug"
                            "status"                 "bar status 1 :debug"}
                     "foo" {"service_version"        "1.1.0"
                            "service_status_version" 2
-                           "is_running"             "true"
+                           "state"                  "running"
                            "detail_level"           "debug"
                            "status"                 "foo status 2 :debug"}}
                   body))))
@@ -104,7 +104,7 @@
             (is (= 200 (:status resp)))
             (is (= {"service_version"        "1.1.0"
                     "service_status_version" 2
-                    "is_running"             "true"
+                    "state"                  "running"
                     "detail_level"           "info"
                     "status"                 "foo status 2 :info"
                     "service_name"           "foo"}
