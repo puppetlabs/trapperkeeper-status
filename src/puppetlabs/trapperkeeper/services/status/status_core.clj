@@ -55,6 +55,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
+(defmacro with-timeout [timeout-s default & body]
+  `(let [f# (future (do ~@body))
+         result# (deref f# (* 1000 ~timeout-s) ~default)]
+     (future-cancel f#)
+     result#))
+
+(defn- maybe-explain
+  "Given the result of a call to schema.core/check, potentially unwrap it with
+  validation-error-explain if it is a ValidationError object. Otherwise, pass
+  the argument through."
+  [schema-failure]
+  (if (instance? schema.utils.ValidationError schema-failure)
+    (validation-error-explain schema-failure)
+    schema-failure))
+
 (schema/defn check-timeout
   "Given a status level keyword, returns a number of seconds to use as a timeout
   when calling a status function."
@@ -146,21 +161,6 @@
     status-version)
   (let [status-map (service-status-map svc-version status-version status-fn)]
     (swap! status-fns-atom update-in [svc-name] conj status-map)))
-
-(defmacro with-timeout [timeout-s default & body]
-  `(let [f# (future (do ~@body))
-         result# (deref f# (* 1000 ~timeout-s) ~default)]
-     (future-cancel f#)
-     result#))
-
-(defn- maybe-explain
-  "Given the result of a call to schema.core/check, potentially unwrap it with
-  validation-error-explain if it is a ValidationError object. Otherwise, pass
-  the argument through."
-  [schema-failure]
-  (if (instance? schema.utils.ValidationError schema-failure)
-    (validation-error-explain schema-failure)
-    schema-failure))
 
 (schema/defn ^:always-validate guarded-status-fn-call
   "Given a status check function, a status detail level, and a timeout in
