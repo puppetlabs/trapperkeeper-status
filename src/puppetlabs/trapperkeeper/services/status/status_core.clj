@@ -1,9 +1,9 @@
 (ns puppetlabs.trapperkeeper.services.status.status-core
   (:require [schema.core :as schema]
             [schema.utils :refer [validation-error-explain]]
-            [ring.middleware.json :as ring-json]
             [ring.middleware.defaults :as ring-defaults]
             [slingshot.slingshot :refer [throw+]]
+            [compojure.core :as compojure]
             [puppetlabs.comidi :as comidi]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
@@ -264,20 +264,64 @@
                :message (str "Invalid service_status_version. Should be an "
                           "integer but was " level)}))))
 
+(schema/defn ^:always-validate summarize-states
+  "Given a map of service statuses:
+   * if all of the statuses have the same :state, returns that :state
+   * if not all of the statuses are the same, returns :unknown"
+  [statuses :- ServicesStatus] :- State
+  (let [state-set (->> statuses
+                       vals
+                       (map :state)
+                       set)]
+    (cond
+      (state-set :error) :error
+      (state-set :unknown) :unknown
+      (state-set :running) :running
+      :else :unknown)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Compojure App
 
-(defn build-routes
+(schema/defn ^:always-validate status->code
+  "Given a service status, returns an appropriate HTTP status code"
+  [status :- ServiceStatus] :- schema/Int
+  (if (nominal? status) 200 503))
+
+(schema/defn ^:always-validate statuses->code
+  "Given a map of service statuses, returns an appropriate HTTP status code."
+  [statuses :- ServicesStatus]
+  (if (all-nominal? statuses) 200 503))
+
+(defn build-plaintext-routes
   [path status-fns]
   (comidi/context path
-    (comidi/context "/v1"
-      (comidi/GET "/services" [:as {params :params}]
+     (comidi/GET "" _
+       (let [statuses (call-status-fns status-fns :critical)]
+         (ringutils/plain-response (statuses->code statuses)
+           (-> statuses
+               summarize-states
+               name))))
+
+     (comidi/GET ["/" :service-name] [service-name]
+       (if-let [service-info (get status-fns service-name)]
+         (let [status (call-status-fn-for-service service-name
+                                                  service-info
+                                                  :critical)]
+           (ringutils/plain-response (status->code status)
+             (name (:state status))))
+         (ringutils/plain-response 404
+           (format "not found: %s" service-name))))))
+
+(defn build-json-routes
+  [path status-fns]
+  (comidi/context path
+      (comidi/GET "" [:as {params :params}]
         (let [level (get-status-detail-level params)
               statuses (call-status-fns status-fns level)]
-          {:status (if (all-nominal? statuses) 200 503)
-           :body statuses}))
-      (comidi/GET ["/services/" :service-name] [service-name :as {params :params}]
+          (ringutils/json-response (statuses->code statuses)
+            statuses)))
+
+      (comidi/GET ["/" :service-name] [service-name :as {params :params}]
         (if-let [service-info (get status-fns service-name)]
           (let [level (get-status-detail-level params)
                 service-status-version (get-service-status-version params)
@@ -285,19 +329,29 @@
                          service-info
                          level
                          service-status-version)]
-            {:status (if (nominal? status) 200 503)
-             :body (assoc status :service_name service-name)})
+            (ringutils/json-response (status->code status)
+              (assoc status :service_name service-name)))
           ;; else (no service with that name)
-          {:status 404
-           :body {:type :service-not-found
-                  :message (str "No status information found for service "
-                             service-name)}})))))
+          (ringutils/json-response 404
+             {:type :service-not-found
+              :message (str "No status information found for service "
+                            service-name)})))))
+
+(schema/defn ^:always-validate wrap-errors-by-type
+  [handler t :- ringutils/ResponseType]
+  (-> handler
+      (ringutils/wrap-request-data-errors t)
+      (ringutils/wrap-schema-errors t)
+      (ringutils/wrap-errors t)))
 
 (defn build-handler [path status-fns]
-  (-> (build-routes path status-fns)
-    comidi/routes->handler
-    ringutils/wrap-request-data-errors
-    ringutils/wrap-schema-errors
-    ringutils/wrap-errors
-    ring-json/wrap-json-response
-    (ring-defaults/wrap-defaults ring-defaults/api-defaults)))
+  (-> (compojure/context path []
+        (compojure/context "/v1" []
+          (compojure/routes
+            (-> (build-json-routes "/services" status-fns)
+                comidi/routes->handler
+                (wrap-errors-by-type :json))
+            (-> (build-plaintext-routes "/simple" status-fns)
+                comidi/routes->handler
+                (wrap-errors-by-type :plain)))))
+      (ring-defaults/wrap-defaults ring-defaults/api-defaults)))
