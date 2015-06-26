@@ -52,6 +52,12 @@
 (def SemVerVersion
   (schema/pred semver/valid-format? "semver"))
 
+(def StatusProxyConfig
+  {:proxy-target-url schema/Str
+   :ssl-opts         {:ssl-cert    schema/Str
+                      :ssl-key     schema/Str
+                      :ssl-ca-cert schema/Str}})
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
@@ -97,6 +103,16 @@
                           status-version))]
     (when (or differing-svc-version? differing-status-version?)
       (throw (IllegalStateException. error-message)))))
+
+(defn validate-protocol
+  "Throws if the protocol is not http or https"
+  [url]
+  (let [protocol (.getProtocol url)]
+    (if-not (contains? #{"http" "https"} protocol)
+      (throw (IllegalStateException.
+               (format (str "The proxy-target-url '%s' has an unsupported "
+               "protocol '%s'. Must be either http or https")
+                 (str url) protocol))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
