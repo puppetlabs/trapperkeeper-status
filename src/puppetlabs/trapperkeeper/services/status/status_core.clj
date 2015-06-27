@@ -70,10 +70,10 @@
     (validation-error-explain schema-failure)
     schema-failure))
 
-(schema/defn check-timeout
+(schema/defn check-timeout :- schema/Int
   "Given a status level keyword, returns a number of seconds to use as a timeout
   when calling a status function."
-  [level :- ServiceStatusDetailLevel] :- schema/Int
+  [level :- ServiceStatusDetailLevel]
   (case level
     :critical 5
     :info 60
@@ -101,11 +101,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn ^:always-validate nominal?
+(schema/defn ^:always-validate nominal? :- schema/Bool
   [status :- ServiceStatus]
   (= (:state status) :running))
 
-(schema/defn ^:always-validate all-nominal?
+(schema/defn ^:always-validate all-nominal? :- schema/Bool
   [statuses :- ServicesStatus]
   (every? nominal? (vals statuses)))
 
@@ -162,7 +162,7 @@
   (let [status-map (service-status-map svc-version status-version status-fn)]
     (swap! status-fns-atom update-in [svc-name] conj status-map)))
 
-(schema/defn ^:always-validate guarded-status-fn-call
+(schema/defn ^:always-validate guarded-status-fn-call :- StatusCallbackResponse
   "Given a status check function, a status detail level, and a timeout in
   seconds, this function calls the status function and handles three types of
   errors:
@@ -175,7 +175,7 @@
   string describing the error."
   [status-fn :- StatusFn
    level :- ServiceStatusDetailLevel
-   timeout :- schema/Int] :- StatusCallbackResponse
+   timeout :- schema/Int]
    (let [unknown-response (fn [status] {:state :unknown
                                         :status status})
          timeout-response (unknown-response (format "Status check timed out after %s seconds" timeout))]
@@ -264,11 +264,11 @@
                :message (str "Invalid service_status_version. Should be an "
                           "integer but was " level)}))))
 
-(schema/defn ^:always-validate summarize-states
+(schema/defn ^:always-validate summarize-states :- State
   "Given a map of service statuses:
    * if all of the statuses have the same :state, returns that :state
    * if not all of the statuses are the same, returns :unknown"
-  [statuses :- ServicesStatus] :- State
+  [statuses :- ServicesStatus]
   (let [state-set (->> statuses
                        vals
                        (map :state)
@@ -282,12 +282,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Compojure App
 
-(schema/defn ^:always-validate status->code
+(schema/defn ^:always-validate status->code :- schema/Int
   "Given a service status, returns an appropriate HTTP status code"
-  [status :- ServiceStatus] :- schema/Int
+  [status :- ServiceStatus]
   (if (nominal? status) 200 503))
 
-(schema/defn ^:always-validate statuses->code
+(schema/defn ^:always-validate statuses->code :- schema/Int
   "Given a map of service statuses, returns an appropriate HTTP status code."
   [statuses :- ServicesStatus]
   (if (all-nominal? statuses) 200 503))
