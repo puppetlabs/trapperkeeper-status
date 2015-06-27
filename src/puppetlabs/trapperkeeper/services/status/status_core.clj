@@ -1,9 +1,9 @@
 (ns puppetlabs.trapperkeeper.services.status.status-core
   (:require [schema.core :as schema]
             [schema.utils :refer [validation-error-explain]]
-            [ring.middleware.json :as ring-json]
             [ring.middleware.defaults :as ring-defaults]
             [slingshot.slingshot :refer [throw+]]
+            [compojure.core :as compojure]
             [puppetlabs.comidi :as comidi]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
@@ -55,10 +55,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
-(schema/defn check-timeout
+(defmacro with-timeout [timeout-s default & body]
+  `(let [f# (future (do ~@body))
+         result# (deref f# (* 1000 ~timeout-s) ~default)]
+     (future-cancel f#)
+     result#))
+
+(defn- maybe-explain
+  "Given the result of a call to schema.core/check, potentially unwrap it with
+  validation-error-explain if it is a ValidationError object. Otherwise, pass
+  the argument through."
+  [schema-failure]
+  (if (instance? schema.utils.ValidationError schema-failure)
+    (validation-error-explain schema-failure)
+    schema-failure))
+
+(schema/defn check-timeout :- schema/Int
   "Given a status level keyword, returns a number of seconds to use as a timeout
   when calling a status function."
-  [level :- ServiceStatusDetailLevel] :- schema/Int
+  [level :- ServiceStatusDetailLevel]
   (case level
     :critical 5
     :info 60
@@ -86,11 +101,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn ^:always-validate nominal?
+(schema/defn ^:always-validate nominal? :- schema/Bool
   [status :- ServiceStatus]
   (= (:state status) :running))
 
-(schema/defn ^:always-validate all-nominal?
+(schema/defn ^:always-validate all-nominal? :- schema/Bool
   [statuses :- ServicesStatus]
   (every? nominal? (vals statuses)))
 
@@ -147,22 +162,7 @@
   (let [status-map (service-status-map svc-version status-version status-fn)]
     (swap! status-fns-atom update-in [svc-name] conj status-map)))
 
-(defmacro with-timeout [timeout-s default & body]
-  `(let [f# (future (do ~@body))
-         result# (deref f# (* 1000 ~timeout-s) ~default)]
-     (future-cancel f#)
-     result#))
-
-(defn- maybe-explain
-  "Given the result of a call to schema.core/check, potentially unwrap it with
-  validation-error-explain if it is a ValidationError object. Otherwise, pass
-  the argument through."
-  [schema-failure]
-  (if (instance? schema.utils.ValidationError schema-failure)
-    (validation-error-explain schema-failure)
-    schema-failure))
-
-(schema/defn ^:always-validate guarded-status-fn-call
+(schema/defn ^:always-validate guarded-status-fn-call :- StatusCallbackResponse
   "Given a status check function, a status detail level, and a timeout in
   seconds, this function calls the status function and handles three types of
   errors:
@@ -175,7 +175,7 @@
   string describing the error."
   [status-fn :- StatusFn
    level :- ServiceStatusDetailLevel
-   timeout :- schema/Int] :- StatusCallbackResponse
+   timeout :- schema/Int]
    (let [unknown-response (fn [status] {:state :unknown
                                         :status status})
          timeout-response (unknown-response (format "Status check timed out after %s seconds" timeout))]
@@ -264,20 +264,64 @@
                :message (str "Invalid service_status_version. Should be an "
                           "integer but was " level)}))))
 
+(schema/defn ^:always-validate summarize-states :- State
+  "Given a map of service statuses:
+   * if all of the statuses have the same :state, returns that :state
+   * if not all of the statuses are the same, returns :unknown"
+  [statuses :- ServicesStatus]
+  (let [state-set (->> statuses
+                       vals
+                       (map :state)
+                       set)]
+    (cond
+      (state-set :error) :error
+      (state-set :unknown) :unknown
+      (state-set :running) :running
+      :else :unknown)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Compojure App
 
-(defn build-routes
+(schema/defn ^:always-validate status->code :- schema/Int
+  "Given a service status, returns an appropriate HTTP status code"
+  [status :- ServiceStatus]
+  (if (nominal? status) 200 503))
+
+(schema/defn ^:always-validate statuses->code :- schema/Int
+  "Given a map of service statuses, returns an appropriate HTTP status code."
+  [statuses :- ServicesStatus]
+  (if (all-nominal? statuses) 200 503))
+
+(defn build-plaintext-routes
   [path status-fns]
   (comidi/context path
-    (comidi/context "/v1"
-      (comidi/GET "/services" [:as {params :params}]
+     (comidi/GET "" _
+       (let [statuses (call-status-fns status-fns :critical)]
+         (ringutils/plain-response (statuses->code statuses)
+           (-> statuses
+               summarize-states
+               name))))
+
+     (comidi/GET ["/" :service-name] [service-name]
+       (if-let [service-info (get status-fns service-name)]
+         (let [status (call-status-fn-for-service service-name
+                                                  service-info
+                                                  :critical)]
+           (ringutils/plain-response (status->code status)
+             (name (:state status))))
+         (ringutils/plain-response 404
+           (format "not found: %s" service-name))))))
+
+(defn build-json-routes
+  [path status-fns]
+  (comidi/context path
+      (comidi/GET "" [:as {params :params}]
         (let [level (get-status-detail-level params)
               statuses (call-status-fns status-fns level)]
-          {:status (if (all-nominal? statuses) 200 503)
-           :body statuses}))
-      (comidi/GET ["/services/" :service-name] [service-name :as {params :params}]
+          (ringutils/json-response (statuses->code statuses)
+            statuses)))
+
+      (comidi/GET ["/" :service-name] [service-name :as {params :params}]
         (if-let [service-info (get status-fns service-name)]
           (let [level (get-status-detail-level params)
                 service-status-version (get-service-status-version params)
@@ -285,19 +329,29 @@
                          service-info
                          level
                          service-status-version)]
-            {:status (if (nominal? status) 200 503)
-             :body (assoc status :service_name service-name)})
+            (ringutils/json-response (status->code status)
+              (assoc status :service_name service-name)))
           ;; else (no service with that name)
-          {:status 404
-           :body {:type :service-not-found
-                  :message (str "No status information found for service "
-                             service-name)}})))))
+          (ringutils/json-response 404
+             {:type :service-not-found
+              :message (str "No status information found for service "
+                            service-name)})))))
+
+(schema/defn ^:always-validate wrap-errors-by-type
+  [handler t :- ringutils/ResponseType]
+  (-> handler
+      (ringutils/wrap-request-data-errors t)
+      (ringutils/wrap-schema-errors t)
+      (ringutils/wrap-errors t)))
 
 (defn build-handler [path status-fns]
-  (-> (build-routes path status-fns)
-    comidi/routes->handler
-    ringutils/wrap-request-data-errors
-    ringutils/wrap-schema-errors
-    ringutils/wrap-errors
-    ring-json/wrap-json-response
-    (ring-defaults/wrap-defaults ring-defaults/api-defaults)))
+  (-> (compojure/context path []
+        (compojure/context "/v1" []
+          (compojure/routes
+            (-> (build-json-routes "/services" status-fns)
+                comidi/routes->handler
+                (wrap-errors-by-type :json))
+            (-> (build-plaintext-routes "/simple" status-fns)
+                comidi/routes->handler
+                (wrap-errors-by-type :plain)))))
+      (ring-defaults/wrap-defaults ring-defaults/api-defaults)))
