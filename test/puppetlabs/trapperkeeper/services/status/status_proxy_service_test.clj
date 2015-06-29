@@ -200,7 +200,7 @@
                        [:status-proxy :proxy-target-url]
                        "file:///C:/Windows/System32/Config")]
       (is (thrown-with-msg?
-            java.lang.IllegalStateException
+            java.lang.IllegalArgumentException
             #"The proxy-target-url.*has an unsupported protocol 'file'"
             (with-test-logging
               (with-app-with-config

@@ -105,15 +105,18 @@
     (when (or differing-svc-version? differing-status-version?)
       (throw (IllegalStateException. error-message)))))
 
-(defn validate-protocol
+(defn validate-protocol!
   "Throws if the protocol is not http or https"
   [url]
-  (let [protocol (.getProtocol url)]
+  (let [protocol (.getProtocol url)
+        url-string (str url)]
     (if-not (contains? #{"http" "https"} protocol)
-      (throw (IllegalStateException.
-               (format (str "The proxy-target-url '%s' has an unsupported "
-               "protocol '%s'. Must be either http or https")
-                 (str url) protocol))))))
+      (throw (IllegalArgumentException.
+               (format
+                 (str "The proxy-target-url '%s' has an unsupported "
+                   "protocol '%s'. Must be either http or https")
+                 url-string
+                 protocol))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
@@ -387,7 +390,7 @@
         path (.getPath target-url)
         protocol (.getProtocol target-url)
         ssl-opts (status-proxy-config :ssl-opts)]
-    (validate-protocol target-url)
+    (validate-protocol! target-url)
     {:proxy-target {:host host
                     :port port
                     :path path}

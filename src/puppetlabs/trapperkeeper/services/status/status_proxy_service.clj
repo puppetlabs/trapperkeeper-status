@@ -9,7 +9,6 @@
   (init [this context]
     (log/info "Initializing status service proxy")
     (let [status-proxy-config (get-in-config [:status-proxy])
-          {proxy-target :proxy-target
-           proxy-options :proxy-options} (get-proxy-route-info status-proxy-config)]
+          {:keys [proxy-target proxy-options]} (get-proxy-route-info status-proxy-config)]
       (add-proxy-route this proxy-target proxy-options))
     context))
