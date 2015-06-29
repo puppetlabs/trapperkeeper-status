@@ -171,7 +171,7 @@
                        dissoc :proxy-target-url)]
       (is (thrown-with-msg?
             clojure.lang.ExceptionInfo
-            #"Value does not match schema.*:proxy-target-url"
+            #"does not match schema.*:proxy-target-url"
             (with-test-logging
               (with-app-with-config
                 proxy-app
@@ -186,7 +186,7 @@
                        3.1415)]
       (is (thrown-with-msg?
             clojure.lang.ExceptionInfo
-            #"Value does not match schema.*:ssl-cert"
+            #"does not match schema.*:ssl-cert"
             (with-test-logging
               (with-app-with-config
                 proxy-app

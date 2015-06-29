@@ -375,13 +375,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Status Proxy
-(defn get-proxy-route-info
+(schema/defn ^:always-validate get-proxy-route-info
   "Validates the status-proxy-config and returns a map with parameters to be
   used with add-proxy-route:
     proxy-target: target host, port, and path
     proxy-options: SSL options for the proxy target"
-  [status-proxy-config]
-  (schema/validate StatusProxyConfig status-proxy-config)
+  [status-proxy-config :- StatusProxyConfig]
   (let [target-url (URL. (status-proxy-config :proxy-target-url))
         host (.getHost target-url)
         port (.getPort target-url)
