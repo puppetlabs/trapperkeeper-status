@@ -8,7 +8,8 @@
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
             [clj-semver.core :as semver]
-            [trptcolin.versioneer.core :as versioneer]))
+            [trptcolin.versioneer.core :as versioneer])
+  (:import (java.net URL)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -371,3 +372,26 @@
                 comidi/routes->handler
                 (wrap-errors-by-type :plain)))))
       (ring-defaults/wrap-defaults ring-defaults/api-defaults)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Status Proxy
+(defn get-proxy-route-info
+  "Validates the status-proxy-config and returns a map with parameters to be
+  used with add-proxy-route:
+    proxy-target: target host, port, and path
+    proxy-options: SSL options for the proxy target"
+  [status-proxy-config]
+  (schema/validate StatusProxyConfig status-proxy-config)
+  (let [target-url (URL. (status-proxy-config :proxy-target-url))
+        host (.getHost target-url)
+        port (.getPort target-url)
+        path (.getPath target-url)
+        protocol (.getProtocol target-url)
+        ssl-opts (status-proxy-config :ssl-opts)]
+    (validate-protocol target-url)
+    {:proxy-target {:host host
+                    :port port
+                    :path path}
+     :proxy-options {:ssl-config ssl-opts
+                     :scheme (keyword protocol)}}))
+
