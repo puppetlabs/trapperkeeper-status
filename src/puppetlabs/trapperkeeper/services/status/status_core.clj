@@ -8,7 +8,8 @@
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
             [clj-semver.core :as semver]
-            [trptcolin.versioneer.core :as versioneer]))
+            [trptcolin.versioneer.core :as versioneer])
+  (:import (java.net URL)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -51,6 +52,12 @@
 
 (def SemVerVersion
   (schema/pred semver/valid-format? "semver"))
+
+(def StatusProxyConfig
+  {:proxy-target-url schema/Str
+   :ssl-opts         {:ssl-cert    schema/Str
+                      :ssl-key     schema/Str
+                      :ssl-ca-cert schema/Str}})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
@@ -97,6 +104,19 @@
                           status-version))]
     (when (or differing-svc-version? differing-status-version?)
       (throw (IllegalStateException. error-message)))))
+
+(defn validate-protocol!
+  "Throws if the protocol is not http or https"
+  [url]
+  (let [protocol (.getProtocol url)
+        url-string (str url)]
+    (if-not (contains? #{"http" "https"} protocol)
+      (throw (IllegalArgumentException.
+               (format
+                 (str "The proxy-target-url '%s' has an unsupported "
+                   "protocol '%s'. Must be either http or https")
+                 url-string
+                 protocol))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
@@ -355,3 +375,25 @@
                 comidi/routes->handler
                 (wrap-errors-by-type :plain)))))
       (ring-defaults/wrap-defaults ring-defaults/api-defaults)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Status Proxy
+(schema/defn ^:always-validate get-proxy-route-info
+  "Validates the status-proxy-config and returns a map with parameters to be
+  used with add-proxy-route:
+    proxy-target: target host, port, and path
+    proxy-options: SSL options for the proxy target"
+  [status-proxy-config :- StatusProxyConfig]
+  (let [target-url (URL. (status-proxy-config :proxy-target-url))
+        host (.getHost target-url)
+        port (.getPort target-url)
+        path (.getPath target-url)
+        protocol (.getProtocol target-url)
+        ssl-opts (status-proxy-config :ssl-opts)]
+    (validate-protocol! target-url)
+    {:proxy-target {:host host
+                    :port port
+                    :path path}
+     :proxy-options {:ssl-config ssl-opts
+                     :scheme (keyword protocol)}}))
+

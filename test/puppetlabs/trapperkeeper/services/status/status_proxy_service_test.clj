@@ -5,6 +5,7 @@
     [puppetlabs.http.client.sync :as http-client]
     [puppetlabs.trapperkeeper.core :refer [defservice service]]
     [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
+    [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
     [puppetlabs.trapperkeeper.services.status.status-service :refer [status-service]]
     [puppetlabs.trapperkeeper.services.status.status-proxy-service :refer [status-proxy-service]]
     [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
@@ -161,3 +162,50 @@
             (doall (map #(http-client/get % common-ssl-config) good-non-status-endpoint-requests))
             (is (= (count good-non-status-endpoint-requests)
                   (deref non-status-endpoint-counter)))))))))
+
+(deftest invalid-proxy-config-throws
+  (testing "Missing proxy-target-url throws schema error"
+    (let [bad-config (update-in
+                       status-proxy-service-config
+                       [:status-proxy]
+                       dissoc :proxy-target-url)]
+      (is (thrown-with-msg?
+            clojure.lang.ExceptionInfo
+            #"does not match schema.*:proxy-target-url"
+            (with-test-logging
+              (with-app-with-config
+                proxy-app
+                [jetty9-service/jetty9-service
+                 webrouting-service/webrouting-service
+                 status-proxy-service]
+                bad-config))))))
+  (testing "Invalid ssl-cert type throws error"
+    (let [bad-config (assoc-in
+                       status-proxy-service-config
+                       [:status-proxy :ssl-opts :ssl-cert]
+                       3.1415)]
+      (is (thrown-with-msg?
+            clojure.lang.ExceptionInfo
+            #"does not match schema.*:ssl-cert"
+            (with-test-logging
+              (with-app-with-config
+                proxy-app
+                [jetty9-service/jetty9-service
+                 webrouting-service/webrouting-service
+                 status-proxy-service]
+                bad-config))))))
+  (testing "Invalid proxy-target-url protocol throws error"
+    (let [bad-config (assoc-in
+                       status-proxy-service-config
+                       [:status-proxy :proxy-target-url]
+                       "file:///C:/Windows/System32/Config")]
+      (is (thrown-with-msg?
+            java.lang.IllegalArgumentException
+            #"The proxy-target-url.*has an unsupported protocol 'file'"
+            (with-test-logging
+              (with-app-with-config
+                proxy-app
+                [jetty9-service/jetty9-service
+                 webrouting-service/webrouting-service
+                 status-proxy-service]
+                bad-config)))))))
