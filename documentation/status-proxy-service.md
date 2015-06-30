@@ -43,9 +43,9 @@ your trapperkeeper configuration might look something like this:
 webserver: {
   default: {
     ssl-port: 9001
-    ssl-cert: ./ssl/certs/localhost.pem
-    ssl-key: ./ssl/private_keys/localhost.pem
-    ssl-ca-cert: ./ssl/certs/ca.pem
+    ssl-cert: /etc/ssl/certs/myhostname.pem
+    ssl-key: /etc/ssl/private_keys/myhostname.pem
+    ssl-ca-cert: /etc/ssl/certs/ca.pem
     default-server: true
   }
 
@@ -55,10 +55,10 @@ webserver: {
 }
 
 web-router-service: {
-    "puppetlabs.trapperkeeper.services.status.status-service/status-service": {
-      route: /status
-      server: status
-    }
+  "puppetlabs.trapperkeeper.services.status.status-service/status-service": {
+    route: /status
+    server: status
+  }
 }
 ```
 
@@ -70,16 +70,22 @@ that is separate from the other, SSL enabled, server. In the
 
 ### Configuring the status-proxy-service
 
-If you would like to setup the status proxy service, your trapperkeeper 
-configuration might look like this:
+#### bootstrap.cfg
+You'll need to add the `status-proxy-service` to your `bootstrap.cfg`:
+```
+puppetlabs.trapperkeeper.services.status.status-proxy-service/status-proxy-service
+```
+
+#### Trapperkeeper config
+Your trapperkeeper configuration might look like this:
 
 ```
 webserver: {
   default: {
     ssl-port: 9001
-    ssl-cert: ./ssl/certs/localhost.pem
-    ssl-key: ./ssl/private_keys/localhost.pem
-    ssl-ca-cert: ./ssl/certs/ca.pem
+    ssl-cert: /etc/ssl/certs/myhostname.pem
+    ssl-key: /etc/ssl/private_keys/myhostname.pem
+    ssl-ca-cert: /etc/ssl/certs/ca.pem
     default-server: true
   }
 
@@ -89,23 +95,20 @@ webserver: {
 }
 
 web-router-service: {
-    "puppetlabs.trapperkeeper.services.status.status-service/status-service": {
-      route: /status
-      server: default
-    }
+  "puppetlabs.trapperkeeper.services.status.status-service/status-service": /status
 
-    "puppetlabs.trapperkeeper.services.status.status-proxy-service/status-proxy-service": {
-      route: /status-proxy
-      server: status-proxy
-    }
+  "puppetlabs.trapperkeeper.services.status.status-proxy-service/status-proxy-service": {
+    route: /status-proxy
+    server: status-proxy
+  }
 }
 
 status-proxy: {
-  proxy-target-url: "https://localhost:9001/status"
+  proxy-target-url: "https://myhostname:9001/status"
   ssl-opts: {
-    ssl-cert: ./ssl/certs/localhost.pem
-    ssl-key: ./ssl/private_keys/localhost.pem
-    ssl-ca-cert: ./ssl/certs/ca.pem
+    ssl-cert: /etc/ssl/certs/myhostname.pem
+    ssl-key: /etc/ssl/private_keys/myhostname.pem
+    ssl-ca-cert: /etc/ssl/certs/ca.pem
   }
 }
 ```
@@ -114,10 +117,11 @@ The important things to note are:
 * The status proxy service and the status service are running on separate
   webservers and ports
 * There is a new section in the config, `status-proxy`, with:
-  * a url pointing the proxy to the status service
+  * A url pointing the proxy to the status service. Note that he hostname of
+    the url must be the CN or a SubjectAltName in the server certificate
   * SSL information that matches the SSL information for the webserver that the
     status service is running on
 
 With this configuration, requests that would normally be made to
-`https://localhost:9001/status` with an SSL cert can be made to
-`localhost:8080/status-proxy` over plaintext
+`https://myhostname:9001/status` with an SSL cert can also be made to
+`http://myhostname:8080/status-proxy` over plaintext
