@@ -117,7 +117,7 @@ The important things to note are:
 * The status proxy service and the status service are running on separate
   webservers and ports
 * There is a new section in the config, `status-proxy`, with:
-  * A url pointing the proxy to the status service. Note that he hostname of
+  * A url pointing the proxy to the status service. Note that the hostname of
     the url must be the CN or a SubjectAltName in the server certificate
   * SSL information that matches the SSL information for the webserver that the
     status service is running on
