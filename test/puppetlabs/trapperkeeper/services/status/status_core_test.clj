@@ -63,7 +63,7 @@
             (is (= :unknown (:state result))))))
 
       (testing "and it is from a timeout"
-        (update-status-context status-fns "quux" "1.1.0" 1 (fn [_] (Thread/sleep 2000) {:is-running :true
+        (update-status-context status-fns "quux" "1.1.0" 1 (fn [_] (Thread/sleep 2000) {:state :running
                                                                                         :status "aw yis"}))
         (with-redefs [puppetlabs.trapperkeeper.services.status.status-core/check-timeout (constantly 1)]
           (let [result (call-status-fn-for-service "quux" (get @status-fns "quux") :debug)]
