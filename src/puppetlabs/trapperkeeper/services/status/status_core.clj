@@ -1,5 +1,6 @@
 (ns puppetlabs.trapperkeeper.services.status.status-core
-  (:require [schema.core :as schema]
+  (:require [clojure.tools.logging :as log]
+            [schema.core :as schema]
             [schema.utils :refer [validation-error-explain]]
             [ring.middleware.defaults :as ring-defaults]
             [slingshot.slingshot :refer [throw+]]
@@ -206,7 +207,9 @@
              (unknown-response (format "Status check malformed: %s" (maybe-explain schema-failure)))
              status))
          (catch Exception e
-           (unknown-response (format "Status check threw an exception: %s" e)))))))
+           (let [error-msg "Status check threw an exception"]
+             (log/error e error-msg)
+             (unknown-response (format "%s: %s" error-msg e))))))))
 
 (schema/defn ^:always-validate call-status-fn-for-service :- ServiceStatus
   "Construct a map with the service's version, the version of the service's

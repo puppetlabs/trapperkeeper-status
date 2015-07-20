@@ -2,6 +2,7 @@
   (:require [clojure.test :refer :all]
             [schema.core :as schema]
             [schema.test :as schema-test]
+            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.services.status.status-core :refer :all]
             [trptcolin.versioneer.core :as versioneer]))
 
@@ -66,7 +67,8 @@
         (update-status-context status-fns "quux" "1.1.0" 1 (fn [_] (Thread/sleep 2000) {:state :running
                                                                                         :status "aw yis"}))
         (with-redefs [puppetlabs.trapperkeeper.services.status.status-core/check-timeout (constantly 1)]
-          (let [result (call-status-fn-for-service "quux" (get @status-fns "quux") :debug)]
+          (let [result (with-test-logging
+                         (call-status-fn-for-service "quux" (get @status-fns "quux") :debug))]
             (testing "state is set properly"
               (is (= :unknown (:state result))))
             (testing "status is set to explain timeout"
@@ -74,7 +76,8 @@
 
       (testing "and it is from the status reporting function"
         (update-status-context status-fns "bar" "1.1.0" 1 (fn [_] (throw (Exception. "don't"))))
-        (let [result (call-status-fn-for-service "bar" (get @status-fns "bar") :debug)]
+        (let [result (with-test-logging
+                       (call-status-fn-for-service "bar" (get @status-fns "bar") :debug))]
           (testing "status contains exception"
             (is (re-find #"don't" (pr-str result))))
           (testing "state is set properly"
