@@ -74,8 +74,8 @@
 
       (testing "and it is from the status reporting function"
         (update-status-context status-fns "bar" "1.1.0" 1 (fn [_] (throw (Exception. "don't"))))
-          (let [result (call-status-fn-for-service "bar" (get @status-fns "bar") :debug)]
-            (testing "status contains exception"
-              (is (re-find #"don't" (pr-str result))))
-            (testing "state is set properly"
-              (= :unknown (:state result))))))))
+        (let [result (call-status-fn-for-service "bar" (get @status-fns "bar") :debug)]
+          (testing "status contains exception"
+            (is (re-find #"don't" (pr-str result))))
+          (testing "state is set properly"
+            (= :unknown (:state result))))))))

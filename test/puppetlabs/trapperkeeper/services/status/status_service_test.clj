@@ -194,29 +194,29 @@
     [slow-service
      broken-service
      baz-service]
-  (testing "handles case when a status check times out"
-    (with-redefs [puppetlabs.trapperkeeper.services.status.status-core/check-timeout (constantly 1)]
-      (let [resp (http-client/get "http://localhost:8180/status/v1/services/slow?level=critical")
-            body (json/parse-string (slurp (:body resp)))]
-        (is (= 503 (:status resp)))
-        (is (= "unknown"
-               (get body "state")))
-        (is (re-find #"timed out" (get body "status"))))))
+    (testing "handles case when a status check times out"
+      (with-redefs [puppetlabs.trapperkeeper.services.status.status-core/check-timeout (constantly 1)]
+        (let [resp (http-client/get "http://localhost:8180/status/v1/services/slow?level=critical")
+              body (json/parse-string (slurp (:body resp)))]
+          (is (= 503 (:status resp)))
+          (is (= "unknown"
+                (get body "state")))
+          (is (re-find #"timed out" (get body "status"))))))
 
-  (testing "handles case when a status check throws an exception"
-    (let [resp (http-client/get "http://localhost:8180/status/v1/services/broken?level=critical")
+    (testing "handles case when a status check throws an exception"
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services/broken?level=critical")
             body (json/parse-string (slurp (:body resp)))]
         (is (= 503 (:status resp)))
         (is (= "unknown"
-               (get body "state")))
+              (get body "state")))
         (is (re-find #"exception.*don't" (get body "status")))))
-  (testing "handles case when a status check returns a non-conforming result"
-    (let [resp (http-client/get "http://localhost:8180/status/v1/services/baz?level=critical")
-          body (json/parse-string (slurp (:body resp)))]
-      (is (= 503 (:status resp)))
-      (is (= "unknown"
-             (get body "state")))
-      (is (re-find #"malformed" (get body "status")))))))
+    (testing "handles case when a status check returns a non-conforming result"
+      (let [resp (http-client/get "http://localhost:8180/status/v1/services/baz?level=critical")
+            body (json/parse-string (slurp (:body resp)))]
+        (is (= 503 (:status resp)))
+        (is (= "unknown"
+              (get body "state")))
+        (is (re-find #"malformed" (get body "status")))))))
 
 (deftest error-handling-test
   (with-status-service app
