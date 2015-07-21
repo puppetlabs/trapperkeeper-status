@@ -67,18 +67,19 @@
         (update-status-context status-fns "quux" "1.1.0" 1 (fn [_] (Thread/sleep 2000) {:state :running
                                                                                         :status "aw yis"}))
         (with-redefs [puppetlabs.trapperkeeper.services.status.status-core/check-timeout (constantly 1)]
-          (let [result (with-test-logging
-                         (call-status-fn-for-service "quux" (get @status-fns "quux") :debug))]
-            (testing "state is set properly"
-              (is (= :unknown (:state result))))
-            (testing "status is set to explain timeout"
-              (is (= "Status check timed out after 1 seconds" (:status result)))))))
+          (with-test-logging
+            (let [result (call-status-fn-for-service "quux" (get @status-fns "quux") :debug)]
+              (testing "state is set properly"
+                (is (= :unknown (:state result))))
+              (testing "status is set to explain timeout"
+                (is (= "Status check timed out after 1 seconds" (:status result))))))))
 
       (testing "and it is from the status reporting function"
         (update-status-context status-fns "bar" "1.1.0" 1 (fn [_] (throw (Exception. "don't"))))
-        (let [result (with-test-logging
-                       (call-status-fn-for-service "bar" (get @status-fns "bar") :debug))]
-          (testing "status contains exception"
-            (is (re-find #"don't" (pr-str result))))
-          (testing "state is set properly"
-            (= :unknown (:state result))))))))
+        (with-test-logging
+          (let [result (call-status-fn-for-service "bar" (get @status-fns "bar") :debug)]
+            (is (logged? #"Status check threw an exception" :error))
+            (testing "status contains exception"
+              (is (re-find #"don't" (pr-str result))))
+            (testing "state is set properly"
+              (= :unknown (:state result)))))))))
