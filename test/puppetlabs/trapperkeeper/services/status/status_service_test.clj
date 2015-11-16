@@ -58,6 +58,18 @@
     (register-status "fail" "4.2.0" 1 (fn [level] {:status "wheee", :state :error}))
     context))
 
+(defservice starting-service
+  [[:StatusService register-status]]
+  (init [this context]
+        (register-status "starting" "6.6.6" 1 (fn [level] {:status "foo"
+                                                           :state :starting}))))
+
+(defservice stopping-service
+  [[:StatusService register-status]]
+  (init [this context]
+        (register-status "stopping" "6.6.6" 1 (fn [level] {:status "bar"
+                                                           :state :stopping}))))
+
 (defservice slow-service
   [[:StatusService register-status]]
   (init [this context]
@@ -282,6 +294,13 @@
             (is (= 503 (:status resp)))
             (is (= "error" (slurp (:body resp)))))))
 
+      (testing "and one service is :starting while another is :stopping"
+        (with-status-service app
+          [foo-service bar-service starting-service stopping-service]
+          (let [resp (http-client/get "http://localhost:8180/status/v1/simple")]
+            (is (= 503 (:status resp)))
+            (is (= "stopping" (slurp (:body resp)))))))
+
       (testing "and a service is :unknown"
         (with-status-service app
           [foo-service baz-service]
@@ -291,7 +310,7 @@
 
     (testing "for a single service"
       (with-status-service app
-        [foo-service baz-service fail-service]
+        [foo-service baz-service fail-service starting-service]
         (testing "and it is :running"
           (let [resp (http-client/get "http://localhost:8180/status/v1/simple/foo")]
             (is (= 200 (:status resp)))
@@ -304,6 +323,10 @@
           (let [resp (http-client/get "http://localhost:8180/status/v1/simple/fail")]
             (is (= 503 (:status resp)))
             (is (= "error" (slurp (:body resp))))))
+        (testing "and it is :starting"
+          (let [resp (http-client/get "http://localhost:8180/status/v1/simple/starting")]
+            (is (= 503 (:status resp)))
+            (is (= "starting" (slurp (:body resp))))))
         (testing "and it does not exist"
           (let [resp (http-client/get "http://localhost:8180/status/v1/simple/kafka")]
             (is (= 404 (:status resp)))

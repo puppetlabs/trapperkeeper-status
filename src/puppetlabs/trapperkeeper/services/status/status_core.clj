@@ -19,7 +19,7 @@
   (schema/enum :critical :info :debug))
 
 (def State
-  (schema/enum :running :error :unknown))
+  (schema/enum :running :error :starting :stopping :unknown))
 
 (def StatusCallbackResponse
   {:state State
@@ -288,9 +288,8 @@
                           "integer but was " level)}))))
 
 (schema/defn ^:always-validate summarize-states :- State
-  "Given a map of service statuses:
-   * if all of the statuses have the same :state, returns that :state
-   * if not all of the statuses are the same, returns :unknown"
+  "Given a map of service statuses, return the 'most severe' state present as
+   ranked by :error, :unknown, :stopping, :starting, :running"
   [statuses :- ServicesStatus]
   (let [state-set (->> statuses
                        vals
@@ -299,6 +298,8 @@
     (cond
       (state-set :error) :error
       (state-set :unknown) :unknown
+      (state-set :stopping) :stopping
+      (state-set :starting) :starting
       (state-set :running) :running
       :else :unknown)))
 

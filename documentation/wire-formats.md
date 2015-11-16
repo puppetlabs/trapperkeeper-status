@@ -44,9 +44,9 @@ It indicates the version number of each service that is providing status informa
  provide very detailed information, suitable for debugging, at the `"debug"` level.
 
 `<service-state>` is a String from the following enumeration: (`"running"`, `"error"`,
- `"unknown"`).  `"unknown"` will be used when there is a problem that is preventing
- the Status Service from getting accurate status information from the specified
- service.
+`"starting"`, `"stopping"`, `"unknown"`).  `"unknown"` will be used when there
+is a problem that is preventing the Status Service from getting accurate status
+information from the specified service.
 
 `<any>` may be any valid JSON object (including `null`).  The data supplied here
  is specific to the individual service that is reporting status.
