@@ -4,7 +4,8 @@
             [schema.test :as schema-test]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.services.status.status-core :refer :all]
-            [trptcolin.versioneer.core :as versioneer]))
+            [trptcolin.versioneer.core :as versioneer]
+            [slingshot.test]))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -50,6 +51,21 @@
             (update-status-context status-fns "foo"
               "1.2.0" 3
               (fn [] "foo repeat")))))))
+
+(deftest get-status-fn-test
+  (testing "getting the status function with an unspecified status version"
+    (let [status-fns (atom {})]
+      (update-status-context status-fns "foo" "1.1.0" 1 (fn [] "foo v1"))
+      (update-status-context status-fns "foo" "1.1.0" 2 (fn [] "foo v2"))
+      (update-status-context status-fns "bar" "8.0.1" 1 (fn [] "bar v1"))
+
+      (let [status-fn (get-status-fn status-fns "foo" nil)]
+        (is (= "foo v2" (status-fn)))
+        (is (thrown+? [:type :service-info-not-found :message "No service info found for service baz"]
+                      (get-status-fn status-fns "baz" nil)))
+        (is (thrown+? [:type :service-status-version-not-found
+                       :message "No status function with version 2 found for service bar"]
+                      (get-status-fn status-fns "bar" 2)))))))
 
 (deftest error-handling-test
   (testing "when there is an error checking status"
