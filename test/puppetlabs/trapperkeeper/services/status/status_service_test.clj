@@ -3,10 +3,11 @@
             [cheshire.core :as json]
             [schema.test :as schema-test]
             [puppetlabs.http.client.sync :as http-client]
-            [puppetlabs.trapperkeeper.core :refer [defservice service]]
+            [puppetlabs.trapperkeeper.services :refer [defservice service]]
+            [puppetlabs.trapperkeeper.app :refer [get-service]]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
-            [puppetlabs.trapperkeeper.services.status.status-service :refer [status-service]]
+            [puppetlabs.trapperkeeper.services.status.status-service :refer [status-service get-status]]
             [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
             [puppetlabs.trapperkeeper.services.webrouting.webrouting-service :as webrouting-service]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9-service]))
@@ -79,6 +80,19 @@
   [[:StatusService register-status]]
   (init [this context]
         (register-status "broken" "0.1.0" 1 (fn [level] (throw (Exception. "don't"))))))
+
+(deftest get-status-test
+  (with-status-service app [foo-service
+                            jetty9-service/jetty9-service
+                            webrouting-service/webrouting-service
+                            status-service]
+    (let [svc (get-service app :StatusService)]
+      (is (= (get-status svc "foo" :critical nil)
+             {:state :running :status "foo status 2 :critical"}) "can get the status from the latest status fn")
+      (is (= (get-status svc "foo" :critical 1)
+             {:state :running :status "foo status 1 :critical"}) "can get the status from a specific status version")
+      (is (= (get-status svc "foo" :info nil)
+             {:state :running :status "foo status 2 :info"}) "can select the status fn level"))))
 
 (deftest rollup-status-endpoint-test
   (with-status-service
