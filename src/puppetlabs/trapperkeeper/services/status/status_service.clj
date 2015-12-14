@@ -12,7 +12,9 @@
     the status level as a keyword and returns the status information for
     the given level.  The return value of the callback function must satisfy
     the puppetlabs.trapperkeeper.services.status.status-core/StatusCallbackResponse
-    schema."))
+    schema.")
+  (get-status [this service-name level status-version]
+    "Call the status function for a registered service."))
 
 (defservice status-service
   StatusService
@@ -31,4 +33,8 @@
   (register-status [this service-name service-version status-version status-fn]
     (log/infof "Registering status callback function for %s service" service-name)
     (core/update-status-context (:status-fns (service-context this))
-      service-name service-version status-version status-fn)))
+      service-name service-version status-version status-fn))
+  (get-status [this service-name level status-version]
+    (let [status-fn (core/get-status-fn (:status-fns (service-context this)) service-name status-version)
+          timeout (core/check-timeout level)]
+      (core/guarded-status-fn-call status-fn level timeout))))

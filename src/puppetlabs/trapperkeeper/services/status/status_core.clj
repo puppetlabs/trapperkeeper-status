@@ -211,6 +211,37 @@
              (log/error e error-msg)
              (unknown-response (format "%s: %s" error-msg e))))))))
 
+(schema/defn ^:always-validate matching-service-info :- ServiceInfo
+  "Find a service info entry matching the service-status-version. If
+  service-status-version is nil the most recent service info is returned."
+  [service-name :- schema/Str
+   service :- [ServiceInfo]
+   service-status-version :- (schema/maybe schema/Int)]
+   (let [status (if (nil? service-status-version)
+                  (last (sort-by :service-status-version service))
+                  (first (filter #(= (:service-status-version %)
+                                     service-status-version)
+                                 service)))]
+     (if (nil? status)
+       (throw+ {:type    :service-status-version-not-found
+                :message (str "No status function with version "
+                              service-status-version
+                              " found for service "
+                              service-name)})
+       status)))
+
+(schema/defn ^:always-validate get-status-fn :- StatusFn
+  "Retrieve the status-fn for a service by name and optionally by service-status version.
+  If service-status-version is nil the status fn for the most recent status version used."
+  [services-info-atom
+   service-name :- schema/Str
+   service-status-version :- (schema/maybe schema/Int)]
+  (let [service-info (-> services-info-atom deref (get service-name))]
+     (if (nil? service-info)
+       (throw+ {:type    :service-info-not-found
+                :message (str "No service info found for service " service-name)})
+       (:status-fn (matching-service-info service-name service-info service-status-version)))))
+
 (schema/defn ^:always-validate call-status-fn-for-service :- ServiceStatus
   "Construct a map with the service's version, the version of the service's
   status, the detail level, and the results of calling the status function
@@ -226,28 +257,18 @@
     service :- [ServiceInfo]
     level :- ServiceStatusDetailLevel
     service-status-version :- (schema/maybe schema/Int)]
-   (let [status (if (nil? service-status-version)
-                  (last (sort-by :service-status-version service))
-                  (first (filter #(= (:service-status-version %)
-                                     service-status-version)
-                                 service)))]
-     (when (nil? status)
-       (throw+ {:type    :service-status-version-not-found
-                :message (str "No status function with version "
-                              service-status-version
-                              " found for service "
-                              service-name)}))
-     (let [timeout (check-timeout level)
-           callback-resp (guarded-status-fn-call (:status-fn status) level timeout)
-           data (:status callback-resp)
-           state (if-not (schema/check State (:state callback-resp))
-                   (:state callback-resp)
-                   :unknown)]
+   (let [status (matching-service-info service-name service service-status-version)
+         timeout (check-timeout level)
+         callback-resp (guarded-status-fn-call (:status-fn status) level timeout)
+         data (:status callback-resp)
+         state (if-not (schema/check State (:state callback-resp))
+                 (:state callback-resp)
+                 :unknown)]
        {:service_version (:service-version status)
         :service_status_version (:service-status-version status)
         :detail_level level
         :state state
-        :status data}))))
+        :status data})))
 
 (schema/defn ^:always-validate call-status-fns :- ServicesStatus
   "Call the latest status function for each service in the service context,
