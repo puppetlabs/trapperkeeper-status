@@ -85,6 +85,8 @@
         (with-redefs [puppetlabs.trapperkeeper.services.status.status-core/check-timeout (constantly 1)]
           (with-test-logging
             (let [result (call-status-fn-for-service "quux" (get @status-fns "quux") :debug)]
+              (is (logged? #"Status callback timed out" :error))
+              (is (logged? #"Status callback interrupted" :error))
               (testing "state is set properly"
                 (is (= :unknown (:state result))))
               (testing "status is set to explain timeout"

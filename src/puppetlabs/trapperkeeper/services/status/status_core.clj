@@ -10,7 +10,8 @@
             [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
             [clj-semver.core :as semver]
             [trptcolin.versioneer.core :as versioneer])
-  (:import (java.net URL)))
+  (:import (java.net URL)
+           (java.util.concurrent CancellationException)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -63,10 +64,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
-(defmacro with-timeout [timeout-s default & body]
+(defmacro with-timeout [description timeout-s default & body]
   `(let [f# (future (do ~@body))
          result# (deref f# (* 1000 ~timeout-s) ~default)]
      (future-cancel f#)
+     (when (future-cancelled? f#)
+       (log/error ~description "timed out, shutting down background task")
+       (try @f#
+            (catch CancellationException e#
+              (log/error e#))))
      result#))
 
 (defn- maybe-explain
@@ -203,12 +209,17 @@
    (let [unknown-response (fn [status] {:state :unknown
                                         :status status})
          timeout-response (unknown-response (format "Status check timed out after %s seconds" timeout))]
-     (with-timeout timeout timeout-response
+     (with-timeout "Status callback" timeout timeout-response
        (try
          (let [status (status-fn level)]
            (if-let [schema-failure (schema/check StatusCallbackResponse status)]
              (unknown-response (format "Status check malformed: %s" (maybe-explain schema-failure)))
              status))
+         (catch InterruptedException e
+           ;; if we get here it's almost certainly because the timeout was reached,
+           ;; so the macro already has a return value and we don't need to bother
+           ;; returning one
+           (log/error e "Status callback interrupted"))
          (catch Exception e
            (let [error-msg "Status check threw an exception"]
              (log/error e error-msg)
