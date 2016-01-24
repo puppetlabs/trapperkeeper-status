@@ -8,7 +8,8 @@
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
             [clj-semver.core :as semver]
-            [trptcolin.versioneer.core :as versioneer])
+            [trptcolin.versioneer.core :as versioneer]
+            [clojure.java.jmx :as jmx])
   (:import (java.net URL)
            (java.util.concurrent CancellationException)))
 
@@ -59,6 +60,16 @@
    :ssl-opts         {:ssl-cert    schema/Str
                       :ssl-key     schema/Str
                       :ssl-ca-cert schema/Str}})
+
+(def MemoryUsageV1
+  {:committed schema/Int
+   :init schema/Int
+   :max schema/Int
+   :used schema/Int})
+
+(def JvmMetricsV1
+  {:heap-memory MemoryUsageV1
+   :non-heap-memory MemoryUsageV1})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
@@ -123,6 +134,11 @@
                    "protocol '%s'. Must be either http or https")
                  url-string
                  protocol))))))
+
+(schema/defn ^:always-validate get-jvm-metrics :- JvmMetricsV1
+  []
+  {:heap-memory (jmx/read "java.lang:type=Memory" :HeapMemoryUsage)
+   :non-heap-memory (jmx/read "java.lang:type=Memory" :NonHeapMemoryUsage)})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
@@ -426,8 +442,8 @@
               {}
               ;; no extra status at ':info' level yet
               (level>= :info) identity
-              ;; no extra status at ':info' level yet
-              (level>= :debug) identity)}))
+              (level>= :debug) (assoc-in [:experimental :jvm-metrics]
+                                         (get-jvm-metrics)))}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Status Proxy

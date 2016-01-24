@@ -409,4 +409,14 @@
      app []
      (let [resp (http-client/get "http://localhost:8180/status/v1/services")]
        (is (= 200 (:status resp)))
-       (is (= #{:status-service} (ks/keyset (parse-response resp true))))))))
+       (is (= #{:status-service} (ks/keyset (parse-response resp true)))))
+     (let [resp (http-client/get "http://localhost:8180/status/v1/services/status-service?level=debug")]
+       (is (= 200 (:status resp)))
+       (let [body (parse-response resp true)]
+         (is (= {:detail_level "debug"
+                 :service_name "status-service"
+                 :service_status_version 1
+                 :service_version status-core/status-service-version
+                 :state "running"}
+                (dissoc body :status)))
+         (is (map? (get-in body [:status :experimental :jvm-metrics]))))))))

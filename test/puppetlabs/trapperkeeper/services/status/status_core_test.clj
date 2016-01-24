@@ -5,7 +5,8 @@
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.services.status.status-core :refer :all]
             [trptcolin.versioneer.core :as versioneer]
-            [slingshot.test]))
+            [slingshot.test]
+            [puppetlabs.kitchensink.core :as ks]))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -101,3 +102,22 @@
               (is (re-find #"don't" (pr-str result))))
             (testing "state is set properly"
               (= :unknown (:state result)))))))))
+
+(deftest v1-status-test
+  (testing "no data at critical level"
+   (is (= {:state :running
+           :status {}} (v1-status :critical))))
+  (testing "no data at info level"
+    (is (= {:state :running
+            :status {}} (v1-status :info))))
+  (testing "jvm metrics at debug level"
+    (let [status (v1-status :debug)]
+      (is (= {:state :running} (dissoc status :status)))
+      (is (= #{:experimental} (ks/keyset (:status status))))
+      (is (= #{:jvm-metrics} (ks/keyset (get-in status [:status :experimental]))))
+      (let [jvm-metrics (get-in status [:status :experimental :jvm-metrics])]
+        (is (= #{:heap-memory :non-heap-memory} (ks/keyset jvm-metrics)))
+        (is (= #{:committed :init :max :used} (ks/keyset (:heap-memory jvm-metrics))))
+        (is (= #{:committed :init :max :used} (ks/keyset (:non-heap-memory jvm-metrics))))
+        (is (every? #(< 0 %) (vals (:heap-memory jvm-metrics))))
+        (is (every? #(< 0 %) (vals (:non-heap-memory jvm-metrics))))))))
