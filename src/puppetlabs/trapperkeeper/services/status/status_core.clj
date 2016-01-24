@@ -151,6 +151,9 @@
                  version))))
     version))
 
+(def status-service-version
+  (get-artifact-version "puppetlabs" "trapperkeeper-status"))
+
 (defn level->int
   "Returns an integer which represents the given status level.
    The ordering of levels is :critical < :info < :debug."
@@ -325,7 +328,7 @@
       :else :unknown)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Compojure App
+;;; Comidi App
 
 (schema/defn ^:always-validate status->code :- schema/Int
   "Given a service status, returns an appropriate HTTP status code"
@@ -402,7 +405,23 @@
       (ring-defaults/wrap-defaults ring-defaults/api-defaults)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Status Service Status
+
+(schema/defn ^:always-validate v1-status :- StatusCallbackResponse
+  [level :- ServiceStatusDetailLevel]
+  (let [level>= (partial compare-levels >= level)]
+    {:state :running
+     :status (cond->
+              ;; no status info at ':critical' level
+              {}
+              ;; no extra status at ':info' level yet
+              (level>= :info) identity
+              ;; no extra status at ':info' level yet
+              (level>= :debug) identity)}))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Status Proxy
+
 (schema/defn ^:always-validate get-proxy-route-info
   "Validates the status-proxy-config and returns a map with parameters to be
   used with add-proxy-route:

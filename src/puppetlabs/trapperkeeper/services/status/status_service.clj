@@ -1,9 +1,8 @@
 (ns puppetlabs.trapperkeeper.services.status.status-service
   (:require [clojure.tools.logging :as log]
-            [compojure.core :as compojure]
             [puppetlabs.trapperkeeper.core :refer [defservice]]
             [puppetlabs.trapperkeeper.services :refer [service-context]]
-            [puppetlabs.trapperkeeper.services.status.status-core :as core]))
+            [puppetlabs.trapperkeeper.services.status.status-core :as status-core]))
 
 (defprotocol StatusService
   (register-status [this service-name service-version status-version status-fn]
@@ -24,17 +23,21 @@
     (assoc context :status-fns (atom {})))
 
   (start [this context]
+    (register-status this "status-service"
+                     status-core/status-service-version
+                     1
+                     (partial status-core/v1-status))
     (log/info "Registering status service HTTP API at /status")
     (let [path (get-route this)
-          handler (core/build-handler path (deref (:status-fns context)))]
+          handler (status-core/build-handler path (deref (:status-fns context)))]
       (add-ring-handler this handler))
     context)
 
   (register-status [this service-name service-version status-version status-fn]
     (log/infof "Registering status callback function for %s service" service-name)
-    (core/update-status-context (:status-fns (service-context this))
-      service-name service-version status-version status-fn))
+    (status-core/update-status-context (:status-fns (service-context this))
+                                       service-name service-version status-version status-fn))
   (get-status [this service-name level status-version]
-    (let [status-fn (core/get-status-fn (:status-fns (service-context this)) service-name status-version)
-          timeout (core/check-timeout level)]
-      (core/guarded-status-fn-call status-fn level timeout))))
+              (let [status-fn (status-core/get-status-fn (:status-fns (service-context this)) service-name status-version)
+          timeout (status-core/check-timeout level)]
+                (status-core/guarded-status-fn-call status-fn level timeout))))
