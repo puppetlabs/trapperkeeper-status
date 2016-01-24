@@ -4,7 +4,6 @@
             [schema.utils :refer [validation-error-explain]]
             [ring.middleware.defaults :as ring-defaults]
             [slingshot.slingshot :refer [throw+]]
-            [compojure.core :as compojure]
             [puppetlabs.comidi :as comidi]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
@@ -396,24 +395,24 @@
               :message (str "No status information found for service "
                             service-name)})))))
 
-(schema/defn ^:always-validate wrap-errors-by-type
-  [handler t :- ringutils/ResponseType]
-  (-> handler
-      (ringutils/wrap-request-data-errors t)
-      (ringutils/wrap-schema-errors t)
-      (ringutils/wrap-errors t)))
+(schema/defn ^:always-validate errors-by-type-middleware
+  [t :- ringutils/ResponseType]
+  (fn [handler]
+    (-> handler
+        (ringutils/wrap-request-data-errors t)
+        (ringutils/wrap-schema-errors t)
+        (ringutils/wrap-errors t))))
 
 (defn build-handler [path status-fns]
-  (-> (compojure/context path []
-        (compojure/context "/v1" []
-          (compojure/routes
-            (-> (build-json-routes "/services" status-fns)
-                comidi/routes->handler
-                (wrap-errors-by-type :json))
-            (-> (build-plaintext-routes "/simple" status-fns)
-                comidi/routes->handler
-                (wrap-errors-by-type :plain)))))
-      (ring-defaults/wrap-defaults ring-defaults/api-defaults)))
+  (comidi/routes->handler
+   (comidi/wrap-routes
+    (comidi/context path
+      (comidi/context "/v1"
+        (-> (build-json-routes "/services" status-fns)
+            (comidi/wrap-routes (errors-by-type-middleware :json)))
+        (-> (build-plaintext-routes "/simple" status-fns)
+            (comidi/wrap-routes (errors-by-type-middleware :plain)))))
+    #(ring-defaults/wrap-defaults % ring-defaults/api-defaults))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Status Service Status
