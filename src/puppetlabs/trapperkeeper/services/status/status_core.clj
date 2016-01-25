@@ -11,7 +11,8 @@
             [trptcolin.versioneer.core :as versioneer]
             [clojure.java.jmx :as jmx])
   (:import (java.net URL)
-           (java.util.concurrent CancellationException)))
+           (java.util.concurrent CancellationException)
+           (java.lang.management ManagementFactory)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -69,7 +70,9 @@
 
 (def JvmMetricsV1
   {:heap-memory MemoryUsageV1
-   :non-heap-memory MemoryUsageV1})
+   :non-heap-memory MemoryUsageV1
+   :up-time-ms schema/Int
+   :start-time-ms schema/Int})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
@@ -137,8 +140,11 @@
 
 (schema/defn ^:always-validate get-jvm-metrics :- JvmMetricsV1
   []
-  {:heap-memory (jmx/read "java.lang:type=Memory" :HeapMemoryUsage)
-   :non-heap-memory (jmx/read "java.lang:type=Memory" :NonHeapMemoryUsage)})
+  (let [runtime-bean (ManagementFactory/getRuntimeMXBean)]
+    {:heap-memory (jmx/read "java.lang:type=Memory" :HeapMemoryUsage)
+     :non-heap-memory (jmx/read "java.lang:type=Memory" :NonHeapMemoryUsage)
+     :up-time-ms (.getUptime runtime-bean)
+     :start-time-ms (.getStartTime runtime-bean)}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
