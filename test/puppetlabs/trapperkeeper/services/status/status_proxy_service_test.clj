@@ -83,7 +83,7 @@
                            "state"                  "running"
                            "detail_level"           "info"
                            "status"                 "foo status 2 :info"}}
-                  body))))
+                   (dissoc body "status-service")))))
         (testing "proxying url with query param"
           (let [resp (http-client/get "http://localhost:8181/status-proxy/v1/services?level=debug")
                 body (json/parse-string (slurp (:body resp)))]
@@ -98,7 +98,7 @@
                            "state"                  "running"
                            "detail_level"           "debug"
                            "status"                 "foo status 2 :debug"}}
-                  body))))
+                   (dissoc body "status-service")))))
         (testing "proxying specific service"
           (let [resp (http-client/get "http://localhost:8181/status-proxy/v1/services/foo")
                 body (json/parse-string (slurp (:body resp)))]

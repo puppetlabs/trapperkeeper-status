@@ -4,13 +4,15 @@
             [schema.utils :refer [validation-error-explain]]
             [ring.middleware.defaults :as ring-defaults]
             [slingshot.slingshot :refer [throw+]]
-            [compojure.core :as compojure]
             [puppetlabs.comidi :as comidi]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
             [clj-semver.core :as semver]
-            [trptcolin.versioneer.core :as versioneer])
-  (:import (java.net URL)))
+            [trptcolin.versioneer.core :as versioneer]
+            [clojure.java.jmx :as jmx])
+  (:import (java.net URL)
+           (java.util.concurrent CancellationException)
+           (java.lang.management ManagementFactory)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -60,13 +62,30 @@
                       :ssl-key     schema/Str
                       :ssl-ca-cert schema/Str}})
 
+(def MemoryUsageV1
+  {:committed schema/Int
+   :init schema/Int
+   :max schema/Int
+   :used schema/Int})
+
+(def JvmMetricsV1
+  {:heap-memory MemoryUsageV1
+   :non-heap-memory MemoryUsageV1
+   :up-time-ms schema/Int
+   :start-time-ms schema/Int})
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
-(defmacro with-timeout [timeout-s default & body]
+(defmacro with-timeout [description timeout-s default & body]
   `(let [f# (future (do ~@body))
          result# (deref f# (* 1000 ~timeout-s) ~default)]
      (future-cancel f#)
+     (when (future-cancelled? f#)
+       (log/error ~description "timed out, shutting down background task")
+       (try @f#
+            (catch CancellationException e#
+              (log/error e#))))
      result#))
 
 (defn- maybe-explain
@@ -119,6 +138,14 @@
                  url-string
                  protocol))))))
 
+(schema/defn ^:always-validate get-jvm-metrics :- JvmMetricsV1
+  []
+  (let [runtime-bean (ManagementFactory/getRuntimeMXBean)]
+    {:heap-memory (jmx/read "java.lang:type=Memory" :HeapMemoryUsage)
+     :non-heap-memory (jmx/read "java.lang:type=Memory" :NonHeapMemoryUsage)
+     :up-time-ms (.getUptime runtime-bean)
+     :start-time-ms (.getStartTime runtime-bean)}))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -150,6 +177,9 @@
                  artifact-id
                  version))))
     version))
+
+(def status-service-version
+  (get-artifact-version "puppetlabs" "trapperkeeper-status"))
 
 (defn level->int
   "Returns an integer which represents the given status level.
@@ -200,12 +230,17 @@
    (let [unknown-response (fn [status] {:state :unknown
                                         :status status})
          timeout-response (unknown-response (format "Status check timed out after %s seconds" timeout))]
-     (with-timeout timeout timeout-response
+     (with-timeout "Status callback" timeout timeout-response
        (try
          (let [status (status-fn level)]
            (if-let [schema-failure (schema/check StatusCallbackResponse status)]
              (unknown-response (format "Status check malformed: %s" (maybe-explain schema-failure)))
              status))
+         (catch InterruptedException e
+           ;; if we get here it's almost certainly because the timeout was reached,
+           ;; so the macro already has a return value and we don't need to bother
+           ;; returning one
+           (log/error e "Status callback interrupted"))
          (catch Exception e
            (let [error-msg "Status check threw an exception"]
              (log/error e error-msg)
@@ -325,7 +360,7 @@
       :else :unknown)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Compojure App
+;;; Comidi App
 
 (schema/defn ^:always-validate status->code :- schema/Int
   "Given a service status, returns an appropriate HTTP status code"
@@ -382,27 +417,43 @@
               :message (str "No status information found for service "
                             service-name)})))))
 
-(schema/defn ^:always-validate wrap-errors-by-type
-  [handler t :- ringutils/ResponseType]
-  (-> handler
-      (ringutils/wrap-request-data-errors t)
-      (ringutils/wrap-schema-errors t)
-      (ringutils/wrap-errors t)))
+(schema/defn ^:always-validate errors-by-type-middleware
+  [t :- ringutils/ResponseType]
+  (fn [handler]
+    (-> handler
+        (ringutils/wrap-request-data-errors t)
+        (ringutils/wrap-schema-errors t)
+        (ringutils/wrap-errors t))))
 
 (defn build-handler [path status-fns]
-  (-> (compojure/context path []
-        (compojure/context "/v1" []
-          (compojure/routes
-            (-> (build-json-routes "/services" status-fns)
-                comidi/routes->handler
-                (wrap-errors-by-type :json))
-            (-> (build-plaintext-routes "/simple" status-fns)
-                comidi/routes->handler
-                (wrap-errors-by-type :plain)))))
-      (ring-defaults/wrap-defaults ring-defaults/api-defaults)))
+  (comidi/routes->handler
+   (comidi/wrap-routes
+    (comidi/context path
+      (comidi/context "/v1"
+        (-> (build-json-routes "/services" status-fns)
+            (comidi/wrap-routes (errors-by-type-middleware :json)))
+        (-> (build-plaintext-routes "/simple" status-fns)
+            (comidi/wrap-routes (errors-by-type-middleware :plain)))))
+    #(ring-defaults/wrap-defaults % ring-defaults/api-defaults))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Status Service Status
+
+(schema/defn ^:always-validate v1-status :- StatusCallbackResponse
+  [level :- ServiceStatusDetailLevel]
+  (let [level>= (partial compare-levels >= level)]
+    {:state :running
+     :status (cond->
+              ;; no status info at ':critical' level
+              {}
+              ;; no extra status at ':info' level yet
+              (level>= :info) identity
+              (level>= :debug) (assoc-in [:experimental :jvm-metrics]
+                                         (get-jvm-metrics)))}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Status Proxy
+
 (schema/defn ^:always-validate get-proxy-route-info
   "Validates the status-proxy-config and returns a map with parameters to be
   used with add-proxy-route:

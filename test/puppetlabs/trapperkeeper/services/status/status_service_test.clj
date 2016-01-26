@@ -10,7 +10,8 @@
             [puppetlabs.trapperkeeper.services.status.status-service :refer [status-service get-status]]
             [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
             [puppetlabs.trapperkeeper.services.webrouting.webrouting-service :as webrouting-service]
-            [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9-service]))
+            [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9-service]
+            [puppetlabs.kitchensink.core :as ks]))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -18,6 +19,16 @@
   {:webserver {:port 8180
                :host "0.0.0.0"}
    :web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}})
+
+(defn parse-response
+  ([resp]
+   (parse-response resp false))
+  ([resp keywordize?]
+   (json/parse-string (slurp (:body resp)) keywordize?)))
+
+(defn response->status
+  [resp]
+  (:status (parse-response resp true)))
 
 (defmacro with-status-service
   "Macro to start the status service and its dependencies (jetty9 and
@@ -101,7 +112,7 @@
      bar-service]
     (testing "returns latest status for all services"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services")
-            body (json/parse-string (slurp (:body resp)))]
+            body (parse-response resp)]
         (is (= 200 (:status resp)))
         (is (= {"bar" {"service_version" "0.1.0"
                        "service_status_version" 1
@@ -113,10 +124,10 @@
                        "state" "running"
                        "detail_level" "info"
                        "status" "foo status 2 :info"}}
-              body))))
+               (dissoc body "status-service")))))
     (testing "uses status level from query param"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services?level=debug")
-            body (json/parse-string (slurp (:body resp)))]
+            body (parse-response resp)]
         (is (= 200 (:status resp)))
         (is (= {"bar" {"service_version" "0.1.0"
                        "service_status_version" 1
@@ -128,7 +139,7 @@
                        "state" "running"
                        "detail_level" "debug"
                        "status" "foo status 2 :debug"}}
-              body))))))
+               (dissoc body "status-service")))))))
 
 (deftest alternate-mount-point-test
   (testing "can mount status endpoint at alternate location"
@@ -156,7 +167,7 @@
                 "detail_level" "info"
                 "status" "foo status 2 :info"
                 "service_name" "foo"}
-              (json/parse-string (slurp (:body resp)))))))
+              (parse-response resp)))))
     (testing "uses status level query param"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/foo?level=critical")]
         (is (= 200 (:status resp)))
@@ -166,7 +177,7 @@
                 "detail_level" "critical"
                 "status" "foo status 2 :critical"
                 "service_name" "foo"}
-              (json/parse-string (slurp (:body resp)))))))
+              (parse-response resp)))))
     (testing "uses service_status_version query param"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/foo?service_status_version=1")]
         (is (= 200 (:status resp)))
@@ -176,7 +187,7 @@
                 "detail_level" "info"
                 "status" "foo status 1 :info"
                 "service_name" "foo"}
-              (json/parse-string (slurp (:body resp)))))))
+              (parse-response resp)))))
     (testing "returns unknown for state if not provided in callback fn"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/baz")]
         (is (= 503 (:status resp)))
@@ -186,13 +197,13 @@
                 "detail_level" "info"
                 "status" "Status check malformed: (not (map? \"baz\"))"
                 "service_name" "baz"}
-              (json/parse-string (slurp (:body resp)))))))
+              (parse-response resp)))))
     (testing "returns a 404 for service not registered with the status service"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/notfound")]
         (is (= 404 (:status resp)))
         (is (= {"type" "service-not-found"
                 "message" "No status information found for service notfound"}
-              (json/parse-string (slurp (:body resp)))))))))
+              (parse-response resp)))))))
 
 (deftest status-code-test
     (with-status-service app
@@ -225,7 +236,7 @@
       (testing "handles case when a status check times out"
         (with-redefs [puppetlabs.trapperkeeper.services.status.status-core/check-timeout (constantly 1)]
           (let [resp (http-client/get "http://localhost:8180/status/v1/services/slow?level=critical")
-                body (json/parse-string (slurp (:body resp)))]
+                body (parse-response resp)]
             (is (= 503 (:status resp)))
             (is (= "unknown"
                   (get body "state")))
@@ -233,14 +244,14 @@
 
       (testing "handles case when a status check throws an exception"
         (let [resp (http-client/get "http://localhost:8180/status/v1/services/broken?level=critical")
-              body (json/parse-string (slurp (:body resp)))]
+              body (parse-response resp)]
           (is (= 503 (:status resp)))
           (is (= "unknown"
                 (get body "state")))
           (is (re-find #"exception.*don't" (get body "status")))))
       (testing "handles case when a status check returns a non-conforming result"
         (let [resp (http-client/get "http://localhost:8180/status/v1/services/baz?level=critical")
-              body (json/parse-string (slurp (:body resp)))]
+              body (parse-response resp)]
           (is (= 503 (:status resp)))
           (is (= "unknown"
                 (get body "state")))
@@ -254,7 +265,7 @@
         (is (= 400 (:status resp)))
         (is (= {"type" "request-data-invalid"
                 "message" "Invalid level: :bar"}
-              (json/parse-string (slurp (:body resp)))))))
+              (parse-response resp)))))
     (testing "returns a 400 when a non-integer status-version is queried for"
       (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
                                     "services/foo?service_status_version=abc"))]
@@ -262,7 +273,7 @@
         (is (= {"type"    "request-data-invalid"
                 "message" (str "Invalid service_status_version. "
                             "Should be an integer but was abc")}
-              (json/parse-string (slurp (:body resp)))))))
+              (parse-response resp)))))
     (testing "returns a 400 when a non-existent status-version is queried for"
       (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
                                     "services/foo?service_status_version=3"))]
@@ -270,7 +281,7 @@
         (is (= {"type"    "service-status-version-not-found"
                 "message" (str "No status function with version 3 "
                             "found for service foo")}
-              (json/parse-string (slurp (:body resp)))))))))
+              (parse-response resp)))))))
 
 
 (deftest simple-routes-params-ignoring-test
@@ -346,10 +357,6 @@
             (is (= 404 (:status resp)))
             (is (= "not found: kafka" (slurp (:body resp))))))))))
 
-(defn response->status
-  [resp]
-  (:status (json/parse-string (slurp (:body resp)) true)))
-
 (deftest compare-levels-test
   (testing "use of compare-levels to implement a status function"
     (let [my-status (fn [level]
@@ -395,3 +402,21 @@
       [foo-service]
       (let [{:keys [headers]} (http-client/get "http://localhost:8180/status/v1/services/foo")]
         (is (re-find #"^application/json" (get headers "content-type")))))))
+
+(deftest status-status-test
+  (testing "trapperkeeper-status registers its own status callback"
+    (with-status-service
+     app []
+     (let [resp (http-client/get "http://localhost:8180/status/v1/services")]
+       (is (= 200 (:status resp)))
+       (is (= #{:status-service} (ks/keyset (parse-response resp true)))))
+     (let [resp (http-client/get "http://localhost:8180/status/v1/services/status-service?level=debug")]
+       (is (= 200 (:status resp)))
+       (let [body (parse-response resp true)]
+         (is (= {:detail_level "debug"
+                 :service_name "status-service"
+                 :service_status_version 1
+                 :service_version status-core/status-service-version
+                 :state "running"}
+                (dissoc body :status)))
+         (is (map? (get-in body [:status :experimental :jvm-metrics]))))))))
