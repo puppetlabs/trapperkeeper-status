@@ -1,3 +1,11 @@
+## 0.3.1
+
+This is a maintenance / bugfix release.
+
+* Exclude the obsolete servlet-api dependency from ring-defaults, to avoid
+  classpath issues with multiple copies of the servlet API in downstream
+  projects.
+
 ## 0.3.0
 
 This is a feature release.
