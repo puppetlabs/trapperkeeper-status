@@ -23,7 +23,10 @@
 
                  [cheshire "5.3.1"]
                  [prismatic/schema "1.0.4"]
-                 [ring/ring-defaults "0.1.5"]
+                 ;; ring-defaults brings in a bad, old version of the servlet-api, which
+                 ;; now has a new artifact name, so we need to use exclusions here
+                 [ring/ring-defaults "0.1.5" :exclusions [javax.servlet/servlet-api]]
+
                  [slingshot "0.12.2"]
                  [trptcolin/versioneer "0.2.0"]
                  [org.clojure/java.jmx "0.3.1"]
