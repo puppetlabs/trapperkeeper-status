@@ -4,7 +4,6 @@
             [schema.test :as schema-test]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.services.status.status-core :refer :all]
-            [trptcolin.versioneer.core :as versioneer]
             [slingshot.test]
             [puppetlabs.kitchensink.core :as ks]))
 
@@ -15,16 +14,9 @@
     ;; This test coverage isn't very thorough, but anything beyond this would
     ;; really just be testing the underlying libraries that we use to
     ;; implement it.
-    (is (nil? (schema/check
-                SemVerVersion
-                (get-artifact-version "puppetlabs" "trapperkeeper-status"))))
     (is (thrown-with-msg? IllegalStateException
           #"Unable to find version number for"
-          (get-artifact-version "fake-group" "artifact-that-does-not-exist")))
-    (with-redefs [versioneer/get-version (constantly "bad-version-string")]
-      (is (thrown-with-msg? IllegalStateException
-            #"does not comply with semver"
-            (get-artifact-version "puppetlabs" "trapperkeeper-status"))))))
+          (get-artifact-version "fake-group" "artifact-that-does-not-exist")))))
 
 (deftest update-status-context-test
   (let [status-fns (atom {})]

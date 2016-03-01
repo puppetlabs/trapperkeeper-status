@@ -35,7 +35,6 @@
                  [trptcolin/versioneer "0.2.0"]
                  [org.clojure/java.jmx "0.3.1"]
 
-                 [grimradical/clj-semver "0.3.0"]
                  [puppetlabs/kitchensink ~ks-version]
                  [puppetlabs/trapperkeeper ~tk-version]
                  [puppetlabs/comidi "0.3.1"]]

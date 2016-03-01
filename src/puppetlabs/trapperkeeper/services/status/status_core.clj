@@ -7,7 +7,6 @@
             [puppetlabs.comidi :as comidi]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.services.status.ringutils :as ringutils]
-            [clj-semver.core :as semver]
             [trptcolin.versioneer.core :as versioneer]
             [clojure.java.jmx :as jmx])
   (:import (java.net URL)
@@ -53,8 +52,7 @@
 (def ServicesStatus
   {schema/Str ServiceStatus})
 
-(def SemVerVersion
-  (schema/pred semver/valid-format? "semver"))
+(def Version schema/Str)
 
 (def StatusProxyConfig
   {:proxy-target-url schema/Str
@@ -158,7 +156,7 @@
   (every? nominal? (vals statuses)))
 
 (schema/defn ^:always-validate
-  get-artifact-version :- SemVerVersion
+  get-artifact-version :- schema/Str
   "Utility function that services can use to get a value to pass in as their
   `service-version` when registering a status callback.  `group-id` and
   `artifact-id` should match the maven/leiningen identifiers for the project
@@ -170,12 +168,6 @@
                (format "Unable to find version number for '%s/%s'"
                  group-id
                  artifact-id))))
-    (when-not (semver/valid-format? version)
-      (throw (IllegalStateException.
-               (format "Service '%s/%s' has version that does not comply with semver: '%s'"
-                 group-id
-                 artifact-id
-                 version))))
     version))
 
 (def status-service-version
