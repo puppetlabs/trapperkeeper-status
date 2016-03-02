@@ -1,3 +1,11 @@
+## 0.3.2
+
+This is a maintenance / bugfix release.
+
+* Cease enforcing semver when pulling versions from artifacts. This ended up
+  being too restrictive and tk-status did not actually depend on or use the
+  semver versions.
+
 ## 0.3.1
 
 This is a maintenance / bugfix release.
