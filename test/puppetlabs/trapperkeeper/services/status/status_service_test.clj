@@ -3,8 +3,8 @@
             [cheshire.core :as json]
             [schema.test :as schema-test]
             [puppetlabs.http.client.sync :as http-client]
-            [puppetlabs.trapperkeeper.services :refer [defservice service]]
-            [puppetlabs.trapperkeeper.app :refer [get-service]]
+            [puppetlabs.trapperkeeper.services :refer [defservice service service-context]]
+            [puppetlabs.trapperkeeper.app :refer [get-service] :as tka]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
             [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
             [puppetlabs.trapperkeeper.services.status.status-service :refer [status-service get-status]]
@@ -419,4 +419,15 @@
                  :service_version status-core/status-service-version
                  :state "running"}
                 (dissoc body :status)))
-         (is (map? (get-in body [:status :experimental :jvm-metrics]))))))))
+         (is (map? (get-in body [:status :experimental :jvm-metrics])))))
+     (testing "and does so idempotently"
+       (let [get-status-status #(-> (get-service app :StatusService)
+                                    service-context
+                                    :status-fns
+                                    deref
+                                    (get status-core/status-service-name))]
+         (is (not (nil? (get-status-status))))
+         (tka/stop app)
+         (is (nil? (get-status-status)))
+         (tka/start app)
+         (is (not (nil? (get-status-status)))))))))
