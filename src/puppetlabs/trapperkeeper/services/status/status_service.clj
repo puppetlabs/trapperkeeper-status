@@ -23,7 +23,7 @@
     (assoc context :status-fns (atom {})))
 
   (start [this context]
-    (register-status this "status-service"
+    (register-status this status-core/status-service-name
                      status-core/status-service-version
                      1
                      (partial status-core/v1-status))
@@ -31,6 +31,11 @@
     (let [path (get-route this)
           handler (status-core/build-handler path (deref (:status-fns context)))]
       (add-ring-handler this handler))
+    context)
+
+  (stop [this context]
+    (status-core/dissoc-status-context! (:status-fns context)
+                                        status-core/status-service-name)
     context)
 
   (register-status [this service-name service-version status-version status-fn]
