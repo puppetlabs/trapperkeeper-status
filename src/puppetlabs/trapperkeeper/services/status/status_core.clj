@@ -147,6 +147,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
+(def status-service-name "status-service")
+
 (schema/defn ^:always-validate nominal? :- schema/Bool
   [status :- ServiceStatus]
   (= (:state status) :running))
@@ -204,6 +206,13 @@
     status-version)
   (let [status-map (service-status-map svc-version status-version status-fn)]
     (swap! status-fns-atom update-in [svc-name] conj status-map)))
+
+(schema/defn ^:always-validate dissoc-status-context! :- nil
+  "Remove a key from the :status-fns atom in the service context"
+  [status-fns-atom :- clojure.lang.Atom
+   svc-name :- schema/Str]
+  (swap! status-fns-atom dissoc svc-name)
+  nil)
 
 (schema/defn ^:always-validate guarded-status-fn-call :- StatusCallbackResponse
   "Given a status check function, a status detail level, and a timeout in
