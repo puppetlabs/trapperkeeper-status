@@ -1,3 +1,10 @@
+## 0.3.3
+
+This is a maintenance / bugfix release.
+
+* Allow trapperkeeper's `stop` and `start` functions to be called on the status
+  service without error by cleaning up context state manually.
+
 ## 0.3.2
 
 This is a maintenance / bugfix release.
