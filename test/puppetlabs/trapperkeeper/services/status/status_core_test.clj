@@ -73,13 +73,15 @@
             (is (= :unknown (:state result))))))
 
       (testing "and it is from a timeout"
-        (update-status-context status-fns "quux" "1.1.0" 1 (fn [_] (Thread/sleep 2000) {:state :running
-                                                                                        :status "aw yis"}))
+        ; Add a status function that will block indefinitely to ensure we will always
+        ; timeout
+        (update-status-context status-fns "quux" "1.1.0" 1 (fn [_] (deref (promise)) {:state :running
+                                                                                      :status "aw yis"}))
         (with-redefs [puppetlabs.trapperkeeper.services.status.status-core/check-timeout (constantly 1)]
           (with-test-logging
             (let [result (call-status-fn-for-service "quux" (get @status-fns "quux") :debug)]
               (is (logged? #"Status callback timed out" :error))
-              (is (logged? #"Status callback interrupted" :error))
+              (is (logged? #"CancellationException"))
               (testing "state is set properly"
                 (is (= :unknown (:state result))))
               (testing "status is set to explain timeout"
