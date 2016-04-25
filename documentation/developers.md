@@ -31,7 +31,6 @@ Code sample:
     context))
 ```
 
-
 ## Implementing Your Status Function
 
 The `puppetlabs.trapperkeeper.services.status.status-core` namespace contains
@@ -56,6 +55,31 @@ might be implemented to utilize the `compare-levels` function:
                                        :z "y"))}))
 ```
 
+## Exposing the /status endpoint
+
+If you want your registered status functions to be accessible via HTTP(S),
+you need to route the status service accordingly:
+
+```
+webserver: {
+  default: {
+    ssl-port: 9001
+    ssl-cert: /etc/ssl/certs/myhostname.pem
+    ssl-key: /etc/ssl/private_keys/myhostname.pem
+    ssl-ca-cert: /etc/ssl/certs/ca.pem
+    default-server: true
+  }
+}
+
+web-router-service: {
+  "puppetlabs.trapperkeeper.services.status.status-service/status-service": {
+    route: /status
+    server: default
+  }
+}
+```
+
+For information on HTTP serving of the status endpoint, see the [Status Proxy documentation](./status-proxy-service.md).
 
 ## Details
 

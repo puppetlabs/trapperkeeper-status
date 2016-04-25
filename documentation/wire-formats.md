@@ -1,5 +1,7 @@
 ## Status Wire Format - Version 1
 
+### JSON Endpoints
+
 Service status information is represented as JSON.  Unless otherwise noted, `null`
 is not allowed anywhere in the status data.
 
@@ -51,7 +53,7 @@ information from the specified service.
 `<any>` may be any valid JSON object (including `null`).  The data supplied here
  is specific to the individual service that is reporting status.
 
-## Errors
+#### Errors
 
 Error responses are formatted as a JSON _Object_:
 
@@ -66,7 +68,37 @@ of error that occurred.  For example, "service-status-version-not-found".
 `<error-message-string>` is a String with a descriptive message about the error
 that occurred.  For example: "No status function with version 2 found for service puppet-server".
 
-## Encoding
+#### Encoding
 
 The entire status payload is expected to be valid JSON, which mandates UTF-8
 encoding.
+
+### Simple (plaintext) endpoints
+
+The two simple endpoints (see the [query api documentation](./query-api.md))
+return strings correpsonding to the computed status of all known services.
+
+The possible responses are:
+
+* "running"
+* "error"
+* "unknown"
+* "starting"
+* "stopping"
+
+#### Errors
+
+If using the /simple/\<SERVICE NAME\> endpoint and the provided service is not
+found,
+
+* 404 "not found: \<SERVICE NAME\>"
+
+will be returned.
+
+It is important to note that when using the simple endpoints, a 503 response
+indicates a status other than _running_ and not a problem with the status
+service itself. However, a 5xx other than 503 would indicate such.
+
+#### Encoding
+
+The content type for these endpoints is `text/plain; charset=utf-8`.

@@ -3,7 +3,9 @@
 You can query for status information about services running in your application
 by making an HTTP request to the `/status` endpoint.
 
-## Status Detail Level
+## JSON Endpoints
+
+### Status Detail Level
 
 When querying for service status, you may optionally request a specific level
 of detail to be returned.  The valid levels are:
@@ -29,18 +31,18 @@ The information returned for any service at each increasing level of detail shou
  return the same data structure as `"info"`, but may add additional information
  in the `status` field.
 
-## `GET /status/v1/services`
+### `GET /status/v1/services`
 
 This will return status information for all registered services in an application.
 
-### URL Parameters
+#### URL Parameters
 
 * `level`: Optional.  A JSON String from among the legal
 [Status Detail Levels](#status-detail-level) listed above.  Status information for
 all registered services will be provided at the requested level of detail.  If
 not provided, the default level is `"info"`.
 
-### Response Format
+#### Response Format
 
 The response format will be a JSON _Object_, which will look something like this:
 
@@ -68,7 +70,7 @@ upgrades of your application, you should consider using the
 specifying status version), rather than the `/services` endpoint (which
 aggregates status for all registered services).
 
-### Examples
+#### Examples
 
 Using `curl` from localhost:
 
@@ -123,12 +125,12 @@ Get the service status of all registered services in an application, at a
         }
     }
 
-## `GET /status/v1/services/<service-name>`
+### `GET /status/v1/services/<service-name>`
 
 This will return status information for a single, specified service from the running
 application.
 
-### URL Parameters
+#### URL Parameters
 
 * `level`: Optional.  A JSON String from among the legal
 [Status Detail Levels](#status-detail-level) listed above.  Status information for
@@ -139,7 +141,7 @@ not provided, the default level is `"info"`.
 format version for the requested service.  If not provided, defaults to the latest
 available status format version for the service.
 
-### Response Format
+#### Response Format
 
 The response format will be a JSON _Object_ with a single entry,
 which will look something like this:
@@ -155,7 +157,7 @@ which will look something like this:
 
 For detailed information, please see the [Wire Format Specification](./wire-formats.md).
 
-### Examples
+#### Examples
 
 Using `curl` from localhost:
 
@@ -212,3 +214,65 @@ version and a specific detail level:
             }
         }
     }
+
+
+## Simple (plaintext) Endpoints
+
+These endpoints are designed for load balancers that don't support any kind of
+JSON parsing or query parameter use. They return simple string bodies (either
+the state of the service in question or a simple error message) and a status
+code relevant to the status result.
+
+The content type for these endpoints is `text/plain; charset=utf-8`.
+
+### GET /status/v1/simple
+
+Returns a status that reflects all services the status service knows about. It
+decides on what status to report using the following logic:
+
+* _running_ if and only if all services are _running_.
+* _error_ if any service reports _error_.
+* _starting_ if any service reports _starting_ and no service reports _error_ or _stopping_.
+* _stopping_ if any service reports _stopping_ and no service reports _error_.
+* _unknown_ if any service reports _unknown_ and no services report _error_.
+
+#### Query parameters
+
+No parameters are supported. Defaults to using the _critical_ status level.
+
+#### Response codes
+
+* 200 if and only if all services report a status of _running_.
+* 503 if any service's status is _unknown_ or _error_.
+
+#### Possible responses
+
+* "running"
+* "error"
+* "starting"
+* "stopping"
+* "unknown"
+
+### GET /status/v1/simple/\<SERVICE NAME\>
+
+Returns the plaintext status of the specified service, such as “rbac-service” or
+“classifier-service”.
+
+#### Query Parameters
+
+No parameters are supported. Defaults to using the _critical_ status level.
+
+#### Response codes
+
+* 200 if service is _running_.
+* 503 if service is _unknown_, _error_, _starting_, or _stopping_.
+* 404 if requested service is not found.
+
+#### Possible responses
+
+* "running"
+* "error"
+* "unknown"
+* "starting"
+* "stopping"
+* "not found: \<SERVICE NAME\>"
