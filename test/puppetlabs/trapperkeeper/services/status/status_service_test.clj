@@ -328,7 +328,7 @@
 
       (testing "and a service is :unknown"
         (with-status-service app
-          [foo-service baz-service]
+          [foo-service baz-service starting-service stopping-service]
           (let [resp (http-client/get "http://localhost:8180/status/v1/simple")]
             (is (= 503 (:status resp)))
             (is (= "unknown" (slurp (:body resp))))))))
