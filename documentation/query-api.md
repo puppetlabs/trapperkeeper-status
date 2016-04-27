@@ -216,12 +216,15 @@ version and a specific detail level:
     }
 
 
-## Simple (plaintext) Endpoints
+## Simple Endpoints
 
 These endpoints are designed for load balancers that don't support any kind of
 JSON parsing or query parameter use. They return simple string bodies (either
 the state of the service in question or a simple error message) and a status
 code relevant to the status result.
+
+If your load balancer *also* needs HTTP instead of HTTPS, you may wish to use the
+[status service proxy](./status-proxy-service.md).
 
 The content type for these endpoints is `text/plain; charset=utf-8`.
 
@@ -255,7 +258,7 @@ No parameters are supported. Defaults to using the _critical_ status level.
 
 ### GET /status/v1/simple/\<SERVICE NAME\>
 
-Returns the plaintext status of the specified service, such as “rbac-service” or
+Returns the status of the specified service, such as “rbac-service” or
 “classifier-service”.
 
 #### Query Parameters

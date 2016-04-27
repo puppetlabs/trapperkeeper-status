@@ -79,7 +79,8 @@ web-router-service: {
 }
 ```
 
-For information on HTTP serving of the status endpoint, see the [Status Proxy documentation](./status-proxy-service.md).
+For information on proxying plaintext `/status` requests to an otherwise HTTPS
+protected server, see the [Status Proxy documentation](./status-proxy-service.md).
 
 ## Details
 

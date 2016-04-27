@@ -73,7 +73,7 @@ that occurred.  For example: "No status function with version 2 found for servic
 The entire status payload is expected to be valid JSON, which mandates UTF-8
 encoding.
 
-### Simple (plaintext) endpoints
+### Simple Endpoints
 
 The two simple endpoints (see the [query api documentation](./query-api.md))
 return strings correpsonding to the computed status of all known services.
