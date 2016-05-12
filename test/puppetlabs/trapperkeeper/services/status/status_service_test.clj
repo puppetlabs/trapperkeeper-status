@@ -263,24 +263,24 @@
     (testing "returns a 400 when an invalid level is queried for"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services?level=bar")]
         (is (= 400 (:status resp)))
-        (is (= {"type" "request-data-invalid"
-                "message" "Invalid level: :bar"}
+        (is (= {"error" {"type" "request-data-invalid"
+                         "message" "Invalid level: :bar"}}
               (parse-response resp)))))
     (testing "returns a 400 when a non-integer status-version is queried for"
       (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
                                     "services/foo?service_status_version=abc"))]
         (is (= 400 (:status resp)))
-        (is (= {"type"    "request-data-invalid"
-                "message" (str "Invalid service_status_version. "
-                            "Should be an integer but was abc")}
+        (is (= {"error" {"type"    "request-data-invalid"
+                         "message" (str "Invalid service_status_version. "
+                                     "Should be an integer but was abc")}}
               (parse-response resp)))))
     (testing "returns a 400 when a non-existent status-version is queried for"
       (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
                                     "services/foo?service_status_version=3"))]
         (is (= 400 (:status resp)))
-        (is (= {"type"    "service-status-version-not-found"
-                "message" (str "No status function with version 3 "
-                            "found for service foo")}
+        (is (= {"error" {"type"    "service-status-version-not-found"
+                         "message" (str "No status function with version 3 "
+                                     "found for service foo")}}
               (parse-response resp)))))))
 
 
@@ -419,15 +419,4 @@
                  :service_version status-core/status-service-version
                  :state "running"}
                 (dissoc body :status)))
-         (is (map? (get-in body [:status :experimental :jvm-metrics])))))
-     (testing "and does so idempotently"
-       (let [get-status-status #(-> (get-service app :StatusService)
-                                    service-context
-                                    :status-fns
-                                    deref
-                                    (get status-core/status-service-name))]
-         (is (not (nil? (get-status-status))))
-         (tka/stop app)
-         (is (nil? (get-status-status)))
-         (tka/start app)
-         (is (not (nil? (get-status-status)))))))))
+         (is (map? (get-in body [:status :experimental :jvm-metrics]))))))))
