@@ -201,8 +201,8 @@
     (testing "returns a 404 for service not registered with the status service"
       (let [resp (http-client/get "http://localhost:8180/status/v1/services/notfound")]
         (is (= 404 (:status resp)))
-        (is (= {"type" "service-not-found"
-                "message" "No status information found for service notfound"}
+        (is (= {"kind" "service-not-found"
+                "msg" "No status information found for service notfound"}
               (parse-response resp)))))))
 
 (deftest status-code-test
@@ -260,28 +260,29 @@
 (deftest error-handling-test
   (with-status-service app
     [foo-service]
-    (testing "returns a 400 when an invalid level is queried for"
-      (let [resp (http-client/get "http://localhost:8180/status/v1/services?level=bar")]
-        (is (= 400 (:status resp)))
-        (is (= {"error" {"type" "request-data-invalid"
-                         "message" "Invalid level: :bar"}}
-              (parse-response resp)))))
-    (testing "returns a 400 when a non-integer status-version is queried for"
-      (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
-                                    "services/foo?service_status_version=abc"))]
-        (is (= 400 (:status resp)))
-        (is (= {"error" {"type"    "request-data-invalid"
-                         "message" (str "Invalid service_status_version. "
-                                     "Should be an integer but was abc")}}
-              (parse-response resp)))))
-    (testing "returns a 400 when a non-existent status-version is queried for"
-      (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
-                                    "services/foo?service_status_version=3"))]
-        (is (= 400 (:status resp)))
-        (is (= {"error" {"type"    "service-status-version-not-found"
-                         "message" (str "No status function with version 3 "
-                                     "found for service foo")}}
-              (parse-response resp)))))))
+    (with-test-logging
+      (testing "returns a 400 when an invalid level is queried for"
+        (let [resp (http-client/get "http://localhost:8180/status/v1/services?level=bar")]
+          (is (= 400 (:status resp)))
+          (is (= {"kind" "data-invalid"
+                  "msg" "Invalid level: :bar"}
+                 (parse-response resp)))))
+      (testing "returns a 400 when a non-integer status-version is queried for"
+        (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
+                                         "services/foo?service_status_version=abc"))]
+          (is (= 400 (:status resp)))
+          (is (= {"kind" "data-invalid"
+                  "msg" (str "Invalid service_status_version. "
+                             "Should be an integer but was abc")}
+                 (parse-response resp)))))
+      (testing "returns a 400 when a non-existent status-version is queried for"
+        (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
+                                         "services/foo?service_status_version=3"))]
+          (is (= 400 (:status resp)))
+          (is (= {"kind" "service-status-version-not-found"
+                  "msg" (str "No status function with version 3 "
+                             "found for service foo")}
+                 (parse-response resp))))))))
 
 
 (deftest simple-routes-params-ignoring-test

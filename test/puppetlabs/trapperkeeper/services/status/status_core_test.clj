@@ -54,10 +54,10 @@
 
       (let [status-fn (get-status-fn status-fns "foo" nil)]
         (is (= "foo v2" (status-fn)))
-        (is (thrown+? [:type :service-info-not-found :message "No service info found for service baz"]
+        (is (thrown+? [:kind :service-info-not-found :msg "No service info found for service baz"]
                       (get-status-fn status-fns "baz" nil)))
-        (is (thrown+? [:type :service-status-version-not-found
-                       :message "No status function with version 2 found for service bar"]
+        (is (thrown+? [:kind :service-status-version-not-found
+                       :msg "No status function with version 2 found for service bar"]
                       (get-status-fn status-fns "bar" 2)))))))
 
 (deftest error-handling-test
