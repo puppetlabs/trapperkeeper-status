@@ -6,7 +6,8 @@
             [slingshot.slingshot :refer [throw+]]
             [puppetlabs.comidi :as comidi]
             [puppetlabs.kitchensink.core :as ks]
-            [puppetlabs.ring-middleware.core :as ringutils]
+            [puppetlabs.ring-middleware.utils :as ringutils]
+            [puppetlabs.ring-middleware.core :as middleware]
             [trptcolin.versioneer.core :as versioneer]
             [clojure.java.jmx :as jmx])
   (:import (java.net URL)
@@ -258,11 +259,11 @@
                                      service-status-version)
                                  service)))]
      (if (nil? status)
-       (throw+ {:type    :service-status-version-not-found
-                :message (str "No status function with version "
-                              service-status-version
-                              " found for service "
-                              service-name)})
+       (throw+ {:kind :service-status-version-not-found
+                :msg (str "No status function with version "
+                          service-status-version
+                          " found for service "
+                          service-name)})
        status)))
 
 (schema/defn ^:always-validate get-status-fn :- StatusFn
@@ -273,8 +274,8 @@
    service-status-version :- (schema/maybe schema/Int)]
   (let [service-info (-> services-info-atom deref (get service-name))]
      (if (nil? service-info)
-       (throw+ {:type    :service-info-not-found
-                :message (str "No service info found for service " service-name)})
+       (throw+ {:kind :service-info-not-found
+                :msg (str "No service info found for service " service-name)})
        (:status-fn (matching-service-info service-name service-info service-status-version)))))
 
 (schema/defn ^:always-validate call-status-fn-for-service :- ServiceStatus
@@ -328,8 +329,7 @@
   (if-let [level (keyword (params :level))]
     (if-not (schema/check ServiceStatusDetailLevel level)
       level
-      (throw+  {:type :request-data-invalid
-                :message (str "Invalid level: " level)}))
+      (ringutils/throw-data-invalid! (str "Invalid level: " level)))
     :info))
 
 (defn get-service-status-version
@@ -339,9 +339,9 @@
   (when-let [level (params :service_status_version)]
     (if-let [parsed-level (ks/parse-int level)]
       parsed-level
-      (throw+ {:type    :request-data-invalid
-               :message (str "Invalid service_status_version. Should be an "
-                          "integer but was " level)}))))
+      (ringutils/throw-data-invalid!
+       (str "Invalid service_status_version. Should be an integer but was "
+            level)))))
 
 (schema/defn ^:always-validate summarize-states :- State
   "Given a map of service statuses, return the 'most severe' state present as
@@ -413,17 +413,17 @@
               (assoc status :service_name service-name)))
           ;; else (no service with that name)
           (ringutils/json-response 404
-             {:type :service-not-found
-              :message (str "No status information found for service "
-                            service-name)})))))
+             {:kind :service-not-found
+              :msg  (str "No status information found for service "
+                         service-name)})))))
 
 (schema/defn ^:always-validate errors-by-type-middleware
   [t :- ringutils/ResponseType]
   (fn [handler]
     (-> handler
-        (ringutils/wrap-data-errors t)
-        (ringutils/wrap-schema-errors t)
-        (ringutils/wrap-uncaught-errors t))))
+        (middleware/wrap-data-errors t)
+        (middleware/wrap-schema-errors t)
+        (middleware/wrap-uncaught-errors t))))
 
 (defn build-handler [path status-fns]
   (comidi/routes->handler
