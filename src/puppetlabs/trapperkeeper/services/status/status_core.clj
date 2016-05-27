@@ -6,7 +6,8 @@
             [slingshot.slingshot :refer [throw+]]
             [puppetlabs.comidi :as comidi]
             [puppetlabs.kitchensink.core :as ks]
-            [puppetlabs.ring-middleware.core :as ringutils]
+            [puppetlabs.ring-middleware.utils :as ringutils]
+            [puppetlabs.ring-middleware.core :as middleware]
             [trptcolin.versioneer.core :as versioneer]
             [clojure.java.jmx :as jmx])
   (:import (java.net URL)
@@ -420,9 +421,9 @@
   [t :- ringutils/ResponseType]
   (fn [handler]
     (-> handler
-        (ringutils/wrap-data-errors t)
-        (ringutils/wrap-schema-errors t)
-        (ringutils/wrap-uncaught-errors t))))
+        (middleware/wrap-data-errors t)
+        (middleware/wrap-schema-errors t)
+        (middleware/wrap-uncaught-errors t))))
 
 (defn build-handler [path status-fns]
   (comidi/routes->handler

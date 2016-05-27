@@ -41,7 +41,7 @@
 
                  [puppetlabs/kitchensink ~ks-version]
                  [puppetlabs/trapperkeeper ~tk-version]
-                 [puppetlabs/ring-middleware "0.3.1"]
+                 [puppetlabs/ring-middleware "1.0.0"]
                  [puppetlabs/comidi "0.3.1"]]
 
   :lein-release {:scm         :git
