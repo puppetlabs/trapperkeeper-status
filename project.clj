@@ -23,6 +23,7 @@
                  [org.clojure/tools.logging "0.3.1"]
                  [org.clojure/tools.reader "1.0.0-alpha1"]
                  [org.clojure/tools.trace "0.7.9"]
+                 [org.slf4j/slf4j-api "1.7.13"]
                  ;; end list of version conflict resolution dependencies
 
                  [cheshire "5.6.1"]
