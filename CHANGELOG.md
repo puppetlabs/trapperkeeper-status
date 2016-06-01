@@ -1,3 +1,12 @@
+## 0.3.4
+
+This is a maintenance / bugfix release.
+
+* Follow standard exception conventions internally and return standard errors
+  through the API.
+* Many improvements to documentation, largely around proxying and the `simple`
+  endpoint.
+
 ## 0.3.3
 
 This is a maintenance / bugfix release.
