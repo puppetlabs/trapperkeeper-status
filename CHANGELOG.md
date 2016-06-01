@@ -1,4 +1,4 @@
-## 0.3.4
+## 0.3.5
 
 This is a maintenance / bugfix release.
 
@@ -6,6 +6,10 @@ This is a maintenance / bugfix release.
   through the API.
 * Many improvements to documentation, largely around proxying and the `simple`
   endpoint.
+* Update slf4j-api dependency.
+
+## 0.3.4
+_Never released due to an automation issue_
 
 ## 0.3.3
 
