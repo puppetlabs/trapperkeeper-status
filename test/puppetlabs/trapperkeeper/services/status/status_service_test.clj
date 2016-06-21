@@ -42,13 +42,19 @@
      status-service-config
      (do ~@body)))
 
+(def alerts [{:severity :error
+              :message "Alert! Alert"}])
+
+(def decoded-alerts (json/decode (json/encode alerts)))
+
 (defservice foo-service
   [[:StatusService register-status]]
   (init [this context]
     (register-status "foo" "1.1.0" 1 (fn [level] {:status (str "foo status 1 " level)
                                                   :state :running}))
     (register-status "foo" "1.1.0" 2 (fn [level] {:status (str "foo status 2 " level)
-                                                  :state :running}))
+                                                  :state :running
+                                                  :alerts alerts}))
     context))
 
 (defservice bar-service
@@ -99,11 +105,16 @@
                             status-service]
     (let [svc (get-service app :StatusService)]
       (is (= (get-status svc "foo" :critical nil)
-             {:state :running :status "foo status 2 :critical"}) "can get the status from the latest status fn")
+             {:state :running
+              :alerts alerts
+              :status "foo status 2 :critical"}) "can get the status from the latest status fn")
       (is (= (get-status svc "foo" :critical 1)
-             {:state :running :status "foo status 1 :critical"}) "can get the status from a specific status version")
+             {:state :running
+              :status "foo status 1 :critical"}) "can get the status from a specific status version")
       (is (= (get-status svc "foo" :info nil)
-             {:state :running :status "foo status 2 :info"}) "can select the status fn level"))))
+             {:state :running
+              :alerts alerts
+              :status "foo status 2 :info"}) "can select the status fn level"))))
 
 (deftest rollup-status-endpoint-test
   (with-status-service
@@ -118,11 +129,13 @@
                        "service_status_version" 1
                        "state" "running"
                        "detail_level" "info"
+                       "active_alerts" []
                        "status" "bar status 1 :info"}
                 "foo" {"service_version" "1.1.0"
                        "service_status_version" 2
                        "state" "running"
                        "detail_level" "info"
+                       "active_alerts" decoded-alerts
                        "status" "foo status 2 :info"}}
                (dissoc body "status-service")))))
     (testing "uses status level from query param"
@@ -133,11 +146,13 @@
                        "service_status_version" 1
                        "state" "running"
                        "detail_level" "debug"
+                       "active_alerts" []
                        "status" "bar status 1 :debug"}
                 "foo" {"service_version" "1.1.0"
                        "service_status_version" 2
                        "state" "running"
                        "detail_level" "debug"
+                       "active_alerts" decoded-alerts
                        "status" "foo status 2 :debug"}}
                (dissoc body "status-service")))))))
 
@@ -166,6 +181,7 @@
                 "state" "running"
                 "detail_level" "info"
                 "status" "foo status 2 :info"
+                "active_alerts" decoded-alerts
                 "service_name" "foo"}
               (parse-response resp)))))
     (testing "uses status level query param"
@@ -176,6 +192,7 @@
                 "state" "running"
                 "detail_level" "critical"
                 "status" "foo status 2 :critical"
+                "active_alerts" decoded-alerts
                 "service_name" "foo"}
               (parse-response resp)))))
     (testing "uses service_status_version query param"
@@ -186,6 +203,7 @@
                 "state" "running"
                 "detail_level" "info"
                 "status" "foo status 1 :info"
+                "active_alerts" []
                 "service_name" "foo"}
               (parse-response resp)))))
     (testing "returns unknown for state if not provided in callback fn"
@@ -196,6 +214,7 @@
                 "state" "unknown"
                 "detail_level" "info"
                 "status" "Status check malformed: (not (map? \"baz\"))"
+                "active_alerts" []
                 "service_name" "baz"}
               (parse-response resp)))))
     (testing "returns a 404 for service not registered with the status service"
@@ -277,10 +296,10 @@
                  (parse-response resp)))))
       (testing "returns a 400 when a non-existent status-version is queried for"
         (let [resp (http-client/get (str "http://localhost:8180/status/v1/"
-                                         "services/foo?service_status_version=3"))]
+                                         "services/foo?service_status_version=99"))]
           (is (= 400 (:status resp)))
           (is (= {"kind" "service-status-version-not-found"
-                  "msg" (str "No status function with version 3 "
+                  "msg" (str "No status function with version 99 "
                              "found for service foo")}
                  (parse-response resp))))))))
 
@@ -418,6 +437,7 @@
                  :service_name "status-service"
                  :service_status_version 1
                  :service_version status-core/status-service-version
+                 :active_alerts []
                  :state "running"}
                 (dissoc body :status)))
          (is (map? (get-in body [:status :experimental :jvm-metrics]))))))))

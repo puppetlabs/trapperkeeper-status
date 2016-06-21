@@ -77,11 +77,13 @@
                            "service_status_version" 1
                            "state"                  "running"
                            "detail_level"           "info"
+                           "active_alerts"          []
                            "status"                 "bar status 1 :info"}
                     "foo" {"service_version"        "1.1.0"
                            "service_status_version" 2
                            "state"                  "running"
                            "detail_level"           "info"
+                           "active_alerts"          []
                            "status"                 "foo status 2 :info"}}
                    (dissoc body "status-service")))))
         (testing "proxying url with query param"
@@ -92,11 +94,13 @@
                            "service_status_version" 1
                            "state"                  "running"
                            "detail_level"           "debug"
+                           "active_alerts"          []
                            "status"                 "bar status 1 :debug"}
                     "foo" {"service_version"        "1.1.0"
                            "service_status_version" 2
                            "state"                  "running"
                            "detail_level"           "debug"
+                           "active_alerts"          []
                            "status"                 "foo status 2 :debug"}}
                    (dissoc body "status-service")))))
         (testing "proxying specific service"
@@ -108,6 +112,7 @@
                     "state"                  "running"
                     "detail_level"           "info"
                     "status"                 "foo status 2 :info"
+                    "active_alerts"          []
                     "service_name"           "foo"}
                   body))))))))
 
