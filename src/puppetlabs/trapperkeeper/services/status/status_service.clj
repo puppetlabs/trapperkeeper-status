@@ -41,7 +41,8 @@
     (log/infof "Registering status callback function for %s service" service-name)
     (status-core/update-status-context (:status-fns (service-context this))
                                        service-name service-version status-version status-fn))
+
   (get-status [this service-name level status-version]
               (let [status-fn (status-core/get-status-fn (:status-fns (service-context this)) service-name status-version)
-          timeout (status-core/check-timeout level)]
+                    timeout (status-core/check-timeout level)]
                 (status-core/guarded-status-fn-call status-fn level timeout))))
