@@ -115,6 +115,6 @@
         (is (= #{:committed :init :max :used} (ks/keyset (:heap-memory jvm-metrics))))
         (is (= #{:committed :init :max :used} (ks/keyset (:non-heap-memory jvm-metrics))))
         (is (every? #(< 0 %) (vals (:heap-memory jvm-metrics))))
-        (is (every? #(< 0 %) (vals (:non-heap-memory jvm-metrics))))
+        (is (every? #(or (< 0 %) (= -1 %)) (vals (:non-heap-memory jvm-metrics))))
         (is (< 0 (:up-time-ms jvm-metrics)))
         (is (< 0 (:start-time-ms jvm-metrics)))))))
