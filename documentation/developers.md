@@ -19,7 +19,8 @@ Code sample:
   v1-status-callback :- status-core/StatusCallbackResponse
   [level :- status-core/ServiceStatusDetailLevel]
   {:state :running
-   :status (get-basic-status-for-my-service-at-level level)})
+   :status (get-basic-status-for-my-service-at-level level)
+   :alerts (get-alerts-at-level level)})
 
 (defservice foo-service
   [[:StatusService register-status]]
@@ -32,6 +33,14 @@ Code sample:
 ```
 
 ## Implementing Your Status Function
+
+Your status callback function should return a map that matches the
+status-core/StatusCallbackResponse schema. This means it should return a :state
+key, a :status key, and :alerts. :status and :alerts can change depending on
+the level specified to the function. Generally, :alerts should only be provided
+at the info level, unless you've decided you have some critical condition that
+is best notified about in prose. Keep in mind that most of our tools that will
+surface :alerts should query at info level.
 
 The `puppetlabs.trapperkeeper.services.status.status-core` namespace contains
 some utilities to aid in the implementation of your status functions.  In

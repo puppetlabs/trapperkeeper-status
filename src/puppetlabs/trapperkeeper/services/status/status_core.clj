@@ -23,9 +23,14 @@
 (def State
   (schema/enum :running :error :starting :stopping :unknown))
 
+(def Alert
+  {:severity (schema/enum :error :warning :info)
+   :message schema/Str})
+
 (def StatusCallbackResponse
   {:state State
-   :status schema/Any})
+   :status schema/Any
+   (schema/optional-key :alerts) [Alert]})
 
 (def StatusFn (schema/make-fn-schema StatusCallbackResponse ServiceStatusDetailLevel))
 
@@ -41,14 +46,13 @@
 
 ;; this is what gets returned in the HTTP response as json, and thus uses
 ;; underscores rather than hyphens
-;; TODO: merge StatusCallbackResponse with this, rather than duplicating its
-;; two keys, and remove underscores from this schema.
 (def ServiceStatus
   {:service_version schema/Str
    :service_status_version schema/Int
    :state State
    :detail_level ServiceStatusDetailLevel
-   :status schema/Any})
+   :status schema/Any
+   :active_alerts [Alert]})
 
 (def ServicesStatus
   {schema/Str ServiceStatus})
@@ -299,12 +303,14 @@
          data (:status callback-resp)
          state (if-not (schema/check State (:state callback-resp))
                  (:state callback-resp)
-                 :unknown)]
+                 :unknown)
+         alerts (get callback-resp :alerts [])]
        {:service_version (:service-version status)
         :service_status_version (:service-status-version status)
         :detail_level level
         :state state
-        :status data})))
+        :status data
+        :active_alerts alerts})))
 
 (schema/defn ^:always-validate call-status-fns :- ServicesStatus
   "Call the latest status function for each service in the service context,

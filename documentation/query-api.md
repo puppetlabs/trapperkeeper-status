@@ -51,8 +51,14 @@ The response format will be a JSON _Object_, which will look something like this
         "service_status_version": <service-status-version>,
         "detail_level": <detail-level>,
         "state": <service-state>,
-        "status": <any>
-        },
+        "status": <any>,
+        "active_alerts": [
+          {
+           "severity": <severity>,
+           "message": <any string>
+          }
+        ]
+      },
      <service-name>: {
         ...
         },
