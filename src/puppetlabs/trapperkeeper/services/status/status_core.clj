@@ -345,12 +345,12 @@
   "Given a params map from a request, get out the service status version and
    check whether it is valid. If not, throw an error."
   [params]
-  (when-let [level (params :service_status_version)]
-    (if-let [parsed-level (ks/parse-int level)]
-      parsed-level
+  (when-let [version (params :service_status_version)]
+    (if-let [numeric-version (ks/parse-int version)]
+      numeric-version
       (ringutils/throw-data-invalid!
        (str "Invalid service_status_version. Should be an integer but was "
-            level)))))
+            version)))))
 
 (schema/defn ^:always-validate summarize-states :- State
   "Given a map of service statuses, return the 'most severe' state present as
