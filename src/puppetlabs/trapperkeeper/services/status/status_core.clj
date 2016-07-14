@@ -17,6 +17,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
 
+(def WholeSeconds schema/Int)
+(def WholeMilliseconds schema/Int)
+
 (def ServiceStatusDetailLevel
   (schema/enum :critical :info :debug))
 
@@ -74,8 +77,8 @@
 (def JvmMetricsV1
   {:heap-memory MemoryUsageV1
    :non-heap-memory MemoryUsageV1
-   :up-time-ms schema/Int
-   :start-time-ms schema/Int})
+   :up-time-ms WholeMilliseconds
+   :start-time-ms WholeMilliseconds})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
@@ -100,9 +103,9 @@
     (validation-error-explain schema-failure)
     schema-failure))
 
-(schema/defn check-timeout :- schema/Int
-  "Given a status level keyword, returns a number of seconds to use as a timeout
-  when calling a status function."
+(schema/defn check-timeout :- WholeSeconds
+  "Given a status level keyword, returns an integral number of seconds to use as
+  a timeout when calling a status function."
   [level :- ServiceStatusDetailLevel]
   (case level
     :critical 5
@@ -220,8 +223,8 @@
 
 (schema/defn ^:always-validate guarded-status-fn-call :- StatusCallbackResponse
   "Given a status check function, a status detail level, and a timeout in
-  seconds, this function calls the status function and handles three types of
-  errors:
+  (integral) seconds, this function calls the status function and handles three
+  types of errors:
 
   * Status check timed out
   * Status check threw an Exception
@@ -231,7 +234,7 @@
   string describing the error."
   [status-fn :- StatusFn
    level :- ServiceStatusDetailLevel
-   timeout :- schema/Int]
+   timeout :- WholeSeconds]
    (let [unknown-response (fn [status] {:state :unknown
                                         :status status})
          timeout-response (unknown-response (format "Status check timed out after %s seconds" timeout))]
