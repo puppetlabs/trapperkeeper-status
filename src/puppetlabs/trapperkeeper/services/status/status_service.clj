@@ -12,8 +12,11 @@
     the given level.  The return value of the callback function must satisfy
     the puppetlabs.trapperkeeper.services.status.status-core/StatusCallbackResponse
     schema.")
-  (get-status [this service-name level status-version]
-    "Call the status function for a registered service."))
+  (get-status
+    [this service-name level status-version]
+    [this service-name level status-version timeout]
+    "Call the status function for a registered service, optionally providing
+    a timeout to override the default timeout value for the level."))
 
 (defservice status-service
   StatusService
@@ -43,6 +46,8 @@
                                        service-name service-version status-version status-fn))
 
   (get-status [this service-name level status-version]
-              (let [status-fn (status-core/get-status-fn (:status-fns (service-context this)) service-name status-version)
-                    timeout (status-core/check-timeout level)]
-                (status-core/guarded-status-fn-call status-fn level timeout))))
+    (get-status this service-name level status-version (status-core/check-timeout level)))
+
+  (get-status [this service-name level status-version timeout]
+    (let [status-fn (status-core/get-status-fn (:status-fns (service-context this)) service-name status-version)]
+      (status-core/guarded-status-fn-call status-fn level timeout))))
