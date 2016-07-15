@@ -108,7 +108,7 @@
   a timeout when calling a status function."
   [level :- ServiceStatusDetailLevel]
   (case level
-    :critical 5
+    :critical 30
     :info 60
     :debug 60))
 
