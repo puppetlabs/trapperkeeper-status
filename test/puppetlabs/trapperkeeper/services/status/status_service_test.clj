@@ -154,7 +154,19 @@
                        "detail_level" "debug"
                        "active_alerts" decoded-alerts
                        "status" "foo status 2 :debug"}}
-               (dissoc body "status-service")))))))
+               (dissoc body "status-service"))))))
+
+  (testing "uses timeout from query param"
+    (with-test-logging
+      (with-status-service
+        app
+        [foo-service
+         slow-service]
+        (testing "uses timeout from query param"
+          (let [resp (http-client/get "http://localhost:8180/status/v1/services?timeout=1")
+                body (parse-response resp)]
+            (is (= 503 (:status resp)))
+            (is (re-find #"timed out" (get-in body ["slow" "status"])))))))))
 
 (deftest alternate-mount-point-test
   (testing "can mount status endpoint at alternate location"
@@ -301,8 +313,22 @@
           (is (= {"kind" "service-status-version-not-found"
                   "msg" (str "No status function with version 99 "
                              "found for service foo")}
-                 (parse-response resp))))))))
-
+                 (parse-response resp)))))
+      (testing "returns a 400 when a non-integer timeout is provided"
+        (let [resp (http-client/get "http://localhost:8180/status/v1/services?timeout=three")]
+          (is (= 400 (:status resp)))
+          (is {"kind" "data-invalid"
+               "msg" "Invalid timeout. Should be an integer but was three"})))
+      (testing "returns a 400 when zero is provided as the timeout"
+        (let [resp (http-client/get "http://localhost:8180/status/v1/services?timeout=0")]
+          (is (= 400 (:status resp)))
+          (is {"kind" "data-invalid"
+               "msg" "Invalid timeout. Timeout must be greater than zero but was 0"})))
+      (testing "returns a 400 when a negative timeout is provided"
+        (let [resp (http-client/get "http://localhost:8180/status/v1/services?timeout=-3")]
+          (is (= 400 (:status resp)))
+          (is {"kind" "data-invalid"
+               "msg" "Invalid timeout. Timeout must be greater than zero but was -3"}))))))
 
 (deftest simple-routes-params-ignoring-test
   (with-status-service app

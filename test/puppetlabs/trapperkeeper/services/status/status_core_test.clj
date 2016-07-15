@@ -66,7 +66,7 @@
     (let [status-fns (atom {})]
       (testing "and it is a bad callback result schema"
         (update-status-context status-fns "foo" "1.1.0" 1 (fn [_] {:totally :nonconforming}))
-        (let [result (call-status-fn-for-service "foo" (get @status-fns "foo") :debug)]
+        (let [result (call-status-fn-for-service "foo" (get @status-fns "foo") :debug 1)]
           (testing "status is set to explain schema error"
             (is (re-find #"missing-required-key" (pr-str result))))
           (testing "state is set properly"
@@ -90,7 +90,7 @@
       (testing "and it is from the status reporting function"
         (update-status-context status-fns "bar" "1.1.0" 1 (fn [_] (throw (Exception. "don't"))))
         (with-test-logging
-          (let [result (call-status-fn-for-service "bar" (get @status-fns "bar") :debug)]
+          (let [result (call-status-fn-for-service "bar" (get @status-fns "bar") :debug 1)]
             (is (logged? #"Status check threw an exception" :error))
             (testing "status contains exception"
               (is (re-find #"don't" (pr-str result))))

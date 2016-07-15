@@ -294,14 +294,15 @@
   :unknown for :state."
   ([service-name :- schema/Str
     service :- [ServiceInfo]
-    level :- ServiceStatusDetailLevel]
-    (call-status-fn-for-service service-name service level nil))
+    level :- ServiceStatusDetailLevel
+    timeout :- WholeSeconds]
+    (call-status-fn-for-service service-name service level timeout nil))
   ([service-name :- schema/Str
     service :- [ServiceInfo]
     level :- ServiceStatusDetailLevel
+    timeout :- WholeSeconds
     service-status-version :- (schema/maybe schema/Int)]
    (let [status (matching-service-info service-name service service-status-version)
-         timeout (check-timeout level)
          callback-resp (guarded-status-fn-call (:status-fn status) level timeout)
          data (:status callback-resp)
          state (if-not (schema/check State (:state callback-resp))
@@ -319,9 +320,10 @@
   "Call the latest status function for each service in the service context,
   and return a map of service to service status."
   [status-fns :- ServicesInfo
-   level :- ServiceStatusDetailLevel]
+   level :- ServiceStatusDetailLevel
+   timeout :- WholeSeconds]
   (try
-    (into {} (pmap (fn [[k v]] {k (call-status-fn-for-service k v level)})
+    (into {} (pmap (fn [[k v]] {k (call-status-fn-for-service k v level timeout)})
                status-fns))
     ;; pmap returns all exceptions that occur while it is executing tasks in a
     ;; java.util.concurrent.ExecutionException. This unwraps and rethrows
@@ -351,6 +353,24 @@
       (ringutils/throw-data-invalid!
        (str "Invalid service_status_version. Should be an integer but was "
             version)))))
+
+(defn get-timeout
+  "Given a params map from a request, attempt to find the timeout parameter and
+  parse it as an integer, returning the numeric value. If no timeout parameter
+  is found, return nil. If the parameter isn't parseable as an integer, throw an
+  exception."
+  [params]
+  (let [timeout-param (:timeout params)
+        numeric-timeout (and timeout-param (ks/parse-int timeout-param))]
+    (cond
+      (nil? timeout-param) nil
+      (nil? numeric-timeout) (ringutils/throw-data-invalid!
+                               (str "Invalid timeout. Should be an integer but was "
+                                    timeout-param))
+      (<= numeric-timeout 0) (ringutils/throw-data-invalid!
+                               (str "Invalid timeout. Timeout must be greater than zero but was"
+                                    numeric-timeout))
+      :else numeric-timeout)))
 
 (schema/defn ^:always-validate summarize-states :- State
   "Given a map of service statuses, return the 'most severe' state present as
@@ -384,18 +404,21 @@
 (defn build-plaintext-routes
   [path status-fns]
   (comidi/context path
-     (comidi/GET "" _
-       (let [statuses (call-status-fns status-fns :critical)]
+     (comidi/GET "" [:as {params :params}]
+       (let [timeout (or (get-timeout params) (check-timeout :critical))
+             statuses (call-status-fns status-fns :critical timeout)]
          (ringutils/plain-response (statuses->code statuses)
            (-> statuses
                summarize-states
                name))))
 
-     (comidi/GET ["/" :service-name] [service-name]
+     (comidi/GET ["/" :service-name] [service-name :as {params :params}]
        (if-let [service-info (get status-fns service-name)]
-         (let [status (call-status-fn-for-service service-name
+         (let [timeout (or (get-timeout params) (check-timeout :critical))
+               status (call-status-fn-for-service service-name
                                                   service-info
-                                                  :critical)]
+                                                  :critical
+                                                  timeout)]
            (ringutils/plain-response (status->code status)
              (name (:state status))))
          (ringutils/plain-response 404
@@ -406,7 +429,8 @@
   (comidi/context path
       (comidi/GET "" [:as {params :params}]
         (let [level (get-status-detail-level params)
-              statuses (call-status-fns status-fns level)]
+              timeout (or (get-timeout params) (check-timeout level))
+              statuses (call-status-fns status-fns level timeout)]
           (ringutils/json-response (statuses->code statuses)
             statuses)))
 
@@ -414,9 +438,11 @@
         (if-let [service-info (get status-fns service-name)]
           (let [level (get-status-detail-level params)
                 service-status-version (get-service-status-version params)
-                status (call-status-fn-for-service service-name
+                status (call-status-fn-for-service
+                         service-name
                          service-info
                          level
+                         (or (get-timeout params) (check-timeout level))
                          service-status-version)]
             (ringutils/json-response (status->code status)
               (assoc status :service_name service-name)))
