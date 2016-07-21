@@ -1,3 +1,25 @@
+## 0.5.0
+
+This is a feature release.
+
+* Add the optional `timeout` query parameter to the HTTP endpoints. The value
+  must be an integer that specifies the timeout in seconds. If a timeout is not
+  provided, then the default is used.
+
+* Add the optional `timeout` argument to the `get-status` protocol method. The
+  value must be an integer that specifies the timeout in seconds. If a timeout
+  is not provided, then the default is used.
+
+* Increase the default critical level timeout from 5 seconds to 30 seconds.
+
+## 0.4.0
+
+This is a feature release.
+
+* Add the capability for services to add an :alerts object to their status
+  function's output which will be returned by the HTTP endpoints under the
+  "active_alerts" key.
+
 ## 0.3.5
 
 This is a maintenance / bugfix release.
