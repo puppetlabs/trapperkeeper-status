@@ -42,6 +42,14 @@ This will return status information for all registered services in an applicatio
 all registered services will be provided at the requested level of detail.  If
 not provided, the default level is `"info"`.
 
+* `timeout`: Optional. An integer specifying the timeout for the check in seconds.
+  If not provided, the default timeout will depend on the level.
+    * `"critical"`: 30 seconds.
+    * `"info"`: 30 seconds.
+    * `"debug"`: 60 seconds.
+  It is highly encouraged to use the timeout parameter to set a timeout that makes
+  sense for your environment.
+
 #### Response Format
 
 The response format will be a JSON _Object_, which will look something like this:
@@ -146,6 +154,14 @@ not provided, the default level is `"info"`.
 * `service_status_version`: Optional.  A JSON integer specifying the desired status
 format version for the requested service.  If not provided, defaults to the latest
 available status format version for the service.
+
+* `timeout`: Optional. An integer specifying the timeout for the check in seconds.
+  If not provided, the default timeout will depend on the level.
+    * `"critical"`: 30 seconds.
+    * `"info"`: 30 seconds.
+    * `"debug"`: 60 seconds.
+  It is highly encouraged to use the timeout parameter to set a timeout that makes
+  sense for your environment.
 
 #### Response Format
 
