@@ -66,7 +66,7 @@
     (let [status-fns (atom {})]
       (testing "and it is a bad callback result schema"
         (update-status-context status-fns "foo" "1.1.0" 1 (fn [_] {:totally :nonconforming}))
-        (let [result (call-status-fn-for-service "foo" (get @status-fns "foo") :debug)]
+        (let [result (call-status-fn-for-service "foo" (get @status-fns "foo") :debug 1)]
           (testing "status is set to explain schema error"
             (is (re-find #"missing-required-key" (pr-str result))))
           (testing "state is set properly"
@@ -77,20 +77,19 @@
         ; timeout
         (update-status-context status-fns "quux" "1.1.0" 1 (fn [_] (deref (promise)) {:state :running
                                                                                       :status "aw yis"}))
-        (with-redefs [puppetlabs.trapperkeeper.services.status.status-core/check-timeout (constantly 1)]
-          (with-test-logging
-            (let [result (call-status-fn-for-service "quux" (get @status-fns "quux") :debug)]
-              (is (logged? #"Status callback timed out" :error))
-              (is (logged? #"CancellationException"))
-              (testing "state is set properly"
-                (is (= :unknown (:state result))))
-              (testing "status is set to explain timeout"
-                (is (= "Status check timed out after 1 seconds" (:status result))))))))
+        (with-test-logging
+          (let [result (call-status-fn-for-service "quux" (get @status-fns "quux") :debug 0)]
+            (is (logged? #"Status callback timed out" :error))
+            (is (logged? #"CancellationException"))
+            (testing "state is set properly"
+              (is (= :unknown (:state result))))
+            (testing "status is set to explain timeout"
+              (is (= "Status check timed out after 0 seconds" (:status result)))))))
 
       (testing "and it is from the status reporting function"
         (update-status-context status-fns "bar" "1.1.0" 1 (fn [_] (throw (Exception. "don't"))))
         (with-test-logging
-          (let [result (call-status-fn-for-service "bar" (get @status-fns "bar") :debug)]
+          (let [result (call-status-fn-for-service "bar" (get @status-fns "bar") :debug 1)]
             (is (logged? #"Status check threw an exception" :error))
             (testing "status contains exception"
               (is (re-find #"don't" (pr-str result))))
