@@ -45,7 +45,7 @@ not provided, the default level is `"info"`.
 * `timeout`: Optional. An integer specifying the timeout for the check in seconds.
   If not provided, the default timeout will depend on the level.
     * `"critical"`: 30 seconds.
-    * `"info"`: 30 seconds.
+    * `"info"`: 60 seconds.
     * `"debug"`: 60 seconds.
   It is highly encouraged to use the timeout parameter to set a timeout that makes
   sense for your environment.
@@ -158,7 +158,7 @@ available status format version for the service.
 * `timeout`: Optional. An integer specifying the timeout for the check in seconds.
   If not provided, the default timeout will depend on the level.
     * `"critical"`: 30 seconds.
-    * `"info"`: 30 seconds.
+    * `"info"`: 60 seconds.
     * `"debug"`: 60 seconds.
   It is highly encouraged to use the timeout parameter to set a timeout that makes
   sense for your environment.
