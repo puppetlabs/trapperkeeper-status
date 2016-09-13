@@ -2,7 +2,9 @@
   (:require [clojure.tools.logging :as log]
             [puppetlabs.trapperkeeper.core :refer [defservice]]
             [puppetlabs.trapperkeeper.services :refer [service-context]]
-            [puppetlabs.trapperkeeper.services.status.status-core :as status-core]))
+            [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
+            [puppetlabs.trapperkeeper.services.status.status-logging :as status-logging]
+            [schema.core :as schema]))
 
 (defprotocol StatusService
   (register-status [this service-name service-version status-version status-fn]
@@ -20,7 +22,8 @@
 
 (defservice status-service
   StatusService
-  [[:WebroutingService add-ring-handler get-route]]
+  [[:WebroutingService add-ring-handler get-route]
+   [:ConfigService get-in-config]]
 
   (init [this context]
     (assoc context :status-fns (atom {})))
@@ -34,10 +37,23 @@
     (let [path (get-route this)
           handler (status-core/build-handler path (deref (:status-fns context)))]
       (add-ring-handler this handler))
-    context)
+    (let [config (schema/validate status-core/StatusConfig (get-in-config [:status]))
+          status-logging-enabled? (:status-logging-enabled config)
+          logging-frequency (:logging-frequency config)]
+      (if status-logging-enabled?
+        (do (log/info "Starting background logging of status data")
+            (let [status-logging-future (status-logging/start-background-task
+                                         logging-frequency
+                                         status-logging/logging-fn)]
+              (assoc context :status-logging-future status-logging-future)))
+        context)))
 
   (stop [this context]
     (status-core/reset-status-context! (:status-fns context))
+    ; Ensure background status logging has stopped
+    (when-let [logging-future (:status-logging-future context)]
+      (log/info "Stopping background logging of status data")
+      (future-cancel logging-future))
     context)
 
   (register-status [this service-name service-version status-version status-fn]

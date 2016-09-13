@@ -80,6 +80,10 @@
    :up-time-ms WholeMilliseconds
    :start-time-ms WholeMilliseconds})
 
+(def StatusConfig
+  (schema/maybe {:status-logging-enabled schema/Bool
+                 :logging-frequency schema/Int}))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
