@@ -9,7 +9,8 @@
             [puppetlabs.ring-middleware.utils :as ringutils]
             [puppetlabs.ring-middleware.core :as middleware]
             [trptcolin.versioneer.core :as versioneer]
-            [clojure.java.jmx :as jmx])
+            [clojure.java.jmx :as jmx]
+            [puppetlabs.i18n.core :as i18n])
   (:import (java.net URL)
            (java.util.concurrent CancellationException)
            (java.lang.management ManagementFactory)))
@@ -91,7 +92,8 @@
          result# (deref f# (* 1000 ~timeout-s) ~default)]
      (future-cancel f#)
      (when (future-cancelled? f#)
-       (log/error ~description "timed out, shutting down background task")
+       (log/error (i18n/trs "{0} timed out, shutting down background task"
+                            ~description))
        (try @f#
             (catch CancellationException e#
               (log/error e#))))
@@ -125,12 +127,8 @@
                                                    status-version)
                                            status-fns)))
         error-message (if differing-svc-version?
-                        (str "Cannot register multiple callbacks for a single "
-                          "service with different service versions.")
-                        (str "Service function already exists for service "
-                          svc-name
-                          " with status version "
-                          status-version))]
+                        (i18n/tru "Cannot register multiple callbacks for a single service with different service versions.")
+                        (i18n/tru "Service function already exists for service {0} with status version {1}" svc-name status-version))]
     (when (or differing-svc-version? differing-status-version?)
       (throw (IllegalStateException. error-message)))))
 
@@ -141,11 +139,9 @@
         url-string (str url)]
     (if-not (contains? #{"http" "https"} protocol)
       (throw (IllegalArgumentException.
-               (format
-                 (str "The proxy-target-url '%s' has an unsupported "
-                   "protocol '%s'. Must be either http or https")
-                 url-string
-                 protocol))))))
+              (i18n/tru "The proxy-target-url ''{0}'' has an unsupported protocol ''{1}''. Must be either http or https"
+                        url-string
+                        protocol))))))
 
 (schema/defn ^:always-validate get-jvm-metrics :- JvmMetricsV1
   []
@@ -178,7 +174,7 @@
   (let [version (versioneer/get-version group-id artifact-id)]
     (when (empty? version)
       (throw (IllegalStateException.
-               (format "Unable to find version number for '%s/%s'"
+               (i18n/tru "Unable to find version number for ''{0}/{1}'"
                  group-id
                  artifact-id))))
     version))
@@ -245,15 +241,15 @@
        (try
          (let [status (status-fn level)]
            (if-let [schema-failure (schema/check StatusCallbackResponse status)]
-             (unknown-response (format "Status check malformed: %s" (maybe-explain schema-failure)))
+             (unknown-response (i18n/tru "Status check malformed: {0}" (maybe-explain schema-failure)))
              status))
          (catch InterruptedException e
            ;; if we get here it's almost certainly because the timeout was reached,
            ;; so the macro already has a return value and we don't need to bother
            ;; returning one
-           (log/error e "Status callback interrupted"))
+           (log/error e (i18n/trs "Status callback interrupted")))
          (catch Exception e
-           (let [error-msg "Status check threw an exception"]
+           (let [error-msg (i18n/trs "Status check threw an exception")]
              (log/error e error-msg)
              (unknown-response (format "%s: %s" error-msg e))))))))
 
@@ -270,10 +266,7 @@
                                  service)))]
      (if (nil? status)
        (throw+ {:kind :service-status-version-not-found
-                :msg (str "No status function with version "
-                          service-status-version
-                          " found for service "
-                          service-name)})
+                :msg (i18n/tru "No status function with version {0} found for service {1}" service-status-version service-name)})
        status)))
 
 (schema/defn ^:always-validate get-status-fn :- StatusFn
@@ -285,7 +278,7 @@
   (let [service-info (-> services-info-atom deref (get service-name))]
      (if (nil? service-info)
        (throw+ {:kind :service-info-not-found
-                :msg (str "No service info found for service " service-name)})
+                :msg (i18n/tru "No service info found for service {0}" service-name)})
        (:status-fn (matching-service-info service-name service-info service-status-version)))))
 
 (schema/defn ^:always-validate call-status-fn-for-service :- ServiceStatus
@@ -343,7 +336,7 @@
   (if-let [level (keyword (params :level))]
     (if-not (schema/check ServiceStatusDetailLevel level)
       level
-      (ringutils/throw-data-invalid! (str "Invalid level: " level)))
+      (ringutils/throw-data-invalid! (i18n/tru "Invalid level: {0}" level)))
     :info))
 
 (defn get-service-status-version
@@ -354,8 +347,9 @@
     (if-let [numeric-version (ks/parse-int version)]
       numeric-version
       (ringutils/throw-data-invalid!
-       (str "Invalid service_status_version. Should be an integer but was "
-            version)))))
+       (i18n/tru
+        "Invalid service_status_version. Should be an integer but was {0}"
+        version)))))
 
 (defn get-timeout
   "Given a params map from a request, attempt to find the timeout parameter and
@@ -368,11 +362,13 @@
     (cond
       (nil? timeout-param) nil
       (nil? numeric-timeout) (ringutils/throw-data-invalid!
-                               (str "Invalid timeout. Should be an integer but was "
-                                    timeout-param))
+                              (i18n/tru
+                               "Invalid timeout. Should be an integer but was {0}"
+                               timeout-param))
       (<= numeric-timeout 0) (ringutils/throw-data-invalid!
-                               (str "Invalid timeout. Timeout must be greater than zero but was"
-                                    numeric-timeout))
+                              (i18n/tru
+                               "Invalid timeout. Timeout must be greater than zero but was {0}"
+                               numeric-timeout))
       :else numeric-timeout)))
 
 (schema/defn ^:always-validate summarize-states :- State
@@ -425,7 +421,7 @@
            (ringutils/plain-response (status->code status)
              (name (:state status))))
          (ringutils/plain-response 404
-           (format "not found: %s" service-name))))))
+           (i18n/tru "not found: {0}" service-name))))))
 
 (defn build-json-routes
   [path status-fns]
@@ -452,8 +448,8 @@
           ;; else (no service with that name)
           (ringutils/json-response 404
              {:kind :service-not-found
-              :msg  (str "No status information found for service "
-                         service-name)})))))
+              :msg  (i18n/tru "No status information found for service {0}"
+                              service-name)})))))
 
 (schema/defn ^:always-validate errors-by-type-middleware
   [t :- ringutils/ResponseType]
@@ -515,4 +511,3 @@
                     :path path}
      :proxy-options {:ssl-config ssl-opts
                      :scheme (keyword protocol)}}))
-
