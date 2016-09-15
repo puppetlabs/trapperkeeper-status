@@ -8,7 +8,7 @@ To take advantage of this you must do two things:
 
     ```
     status: {
-        logging-frequency: 2000,
+        status-logging-interval: 2000,
         status-logging-enabled: true
     }
     ```

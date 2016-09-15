@@ -82,7 +82,7 @@
 
 (def StatusConfig
   (schema/maybe {:status-logging-enabled schema/Bool
-                 :logging-frequency schema/Int}))
+                 :status-logging-interval schema/Int}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private

@@ -23,7 +23,8 @@
 (defservice status-service
   StatusService
   [[:WebroutingService add-ring-handler get-route]
-   [:ConfigService get-in-config]]
+   [:ConfigService get-in-config]
+   [:SchedulerService interspaced]]
 
   (init [this context]
     (assoc context :status-fns (atom {})))
@@ -39,21 +40,14 @@
       (add-ring-handler this handler))
     (let [config (schema/validate status-core/StatusConfig (get-in-config [:status]))
           status-logging-enabled? (:status-logging-enabled config)
-          logging-frequency (:logging-frequency config)]
-      (if status-logging-enabled?
-        (do (log/info "Starting background logging of status data")
-            (let [status-logging-future (status-logging/start-background-task
-                                         logging-frequency
-                                         status-logging/logging-fn)]
-              (assoc context :status-logging-future status-logging-future)))
+          status-logging-interval (:status-logging-interval config)]
+      (when status-logging-enabled?
+        (log/info "Starting background logging of status data")
+        (interspaced status-logging-interval status-logging/log-status)
         context)))
 
   (stop [this context]
     (status-core/reset-status-context! (:status-fns context))
-    ; Ensure background status logging has stopped
-    (when-let [logging-future (:status-logging-future context)]
-      (log/info "Stopping background logging of status data")
-      (future-cancel logging-future))
     context)
 
   (register-status [this service-name service-version status-version status-fn]
