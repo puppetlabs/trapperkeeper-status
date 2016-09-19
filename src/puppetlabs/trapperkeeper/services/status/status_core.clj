@@ -80,9 +80,8 @@
    :up-time-ms WholeMilliseconds
    :start-time-ms WholeMilliseconds})
 
-(def StatusConfig
-  (schema/maybe {:status-logging-enabled schema/Bool
-                 :status-logging-interval schema/Int}))
+(def DebugLoggingConfig
+  (schema/maybe {:interval-seconds schema/Int}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private

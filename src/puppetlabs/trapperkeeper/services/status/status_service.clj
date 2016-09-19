@@ -38,12 +38,12 @@
     (let [path (get-route this)
           handler (status-core/build-handler path (deref (:status-fns context)))]
       (add-ring-handler this handler))
-    (let [config (schema/validate status-core/StatusConfig (get-in-config [:status]))
-          status-logging-enabled? (:status-logging-enabled config)
-          status-logging-interval (:status-logging-interval config)]
-      (when status-logging-enabled?
+    (let [debug-logging-config (schema/validate status-core/DebugLoggingConfig
+                                                (get-in-config [:status :debug-logging]))
+          debug-logging-interval (:interval-seconds debug-logging-config)]
+      (when debug-logging-interval
         (log/info "Starting background logging of status data")
-        (interspaced status-logging-interval status-logging/log-status)))
+        (interspaced debug-logging-interval status-logging/log-status)))
     context)
 
   (stop [this context]
