@@ -4,7 +4,7 @@ TK-status can periodically log status data to a file in JSON format.
 
 To take advantage of this you must do two things:
 
-1. Enable logging though you TK app's configuration. For example, to log every 2 seconds, your configuration might look like this:
+1. Enable logging through you TK app's configuration. For example, to log every 2 seconds, your configuration might look like this:
 
     ```
     status: {
