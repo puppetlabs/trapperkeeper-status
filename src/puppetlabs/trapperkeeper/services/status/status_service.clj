@@ -3,7 +3,7 @@
             [puppetlabs.trapperkeeper.core :refer [defservice]]
             [puppetlabs.trapperkeeper.services :refer [service-context]]
             [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
-            [puppetlabs.trapperkeeper.services.status.status-logging :as status-logging]
+            [puppetlabs.trapperkeeper.services.status.status-debug-logging :as status-logging]
             [schema.core :as schema]))
 
 (defprotocol StatusService

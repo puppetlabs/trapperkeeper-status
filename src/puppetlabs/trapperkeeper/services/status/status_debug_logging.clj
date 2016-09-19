@@ -1,4 +1,4 @@
-(ns puppetlabs.trapperkeeper.services.status.status-logging
+(ns puppetlabs.trapperkeeper.services.status.status-debug-logging
   (:require [clojure.tools.logging :as log]
             [schema.utils :refer [validation-error-explain]]
             [cheshire.core :as json]
