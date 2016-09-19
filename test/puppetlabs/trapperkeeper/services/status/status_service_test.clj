@@ -11,6 +11,7 @@
             [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
             [puppetlabs.trapperkeeper.services.webrouting.webrouting-service :as webrouting-service]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9-service]
+            [puppetlabs.trapperkeeper.services.scheduler.scheduler-service :as scheduler-service]
             [puppetlabs.kitchensink.core :as ks]))
 
 (use-fixtures :once schema-test/validate-schemas)
@@ -38,6 +39,7 @@
      ~app
      (concat [jetty9-service/jetty9-service
               webrouting-service/webrouting-service
+              scheduler-service/scheduler-service
               status-service] ~services)
      status-service-config
      (do ~@body)))
@@ -174,6 +176,7 @@
       app
       [jetty9-service/jetty9-service
        webrouting-service/webrouting-service
+       scheduler-service/scheduler-service
        status-service]
       (merge status-service-config
         {:web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/alternate-status"}})
