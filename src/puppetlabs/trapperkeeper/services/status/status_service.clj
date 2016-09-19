@@ -43,8 +43,8 @@
           status-logging-interval (:status-logging-interval config)]
       (when status-logging-enabled?
         (log/info "Starting background logging of status data")
-        (interspaced status-logging-interval status-logging/log-status)
-        context)))
+        (interspaced status-logging-interval status-logging/log-status)))
+    context)
 
   (stop [this context]
     (status-core/reset-status-context! (:status-fns context))
