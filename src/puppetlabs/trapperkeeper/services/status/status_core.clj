@@ -81,7 +81,7 @@
    :start-time-ms WholeMilliseconds})
 
 (def DebugLoggingConfig
-  (schema/maybe {:interval-seconds schema/Int}))
+  (schema/maybe {:interval-milliseconds schema/Int}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private

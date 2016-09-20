@@ -8,8 +8,9 @@ To take advantage of this you must do two things:
 
     ```
     status: {
-        status-logging-interval: 2000,
-        status-logging-enabled: true
+        debug-logging: {
+            interval-milliseconds: 2000,
+        }
     }
     ```
 
