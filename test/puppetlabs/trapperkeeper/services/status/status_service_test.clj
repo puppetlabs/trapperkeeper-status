@@ -6,7 +6,7 @@
             [puppetlabs.trapperkeeper.services :refer [defservice service service-context]]
             [puppetlabs.trapperkeeper.app :refer [get-service] :as tka]
             [puppetlabs.trapperkeeper.testutils.bootstrap :refer :all]
-            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
+            [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging with-logger-event-maps]]
             [puppetlabs.trapperkeeper.services.status.status-service :refer [status-service get-status]]
             [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
             [puppetlabs.trapperkeeper.services.webrouting.webrouting-service :as webrouting-service]
@@ -31,18 +31,27 @@
   [resp]
   (:status (parse-response resp true)))
 
-(defmacro with-status-service
+(defmacro with-status-service-with-config
   "Macro to start the status service and its dependencies (jetty9 and
-  webrouting service), along with any other services desired."
-  [app services & body]
+  webrouting service), along with any other services desired, with the given
+  config"
+  [app services config & body]
   `(with-app-with-config
      ~app
      (concat [jetty9-service/jetty9-service
               webrouting-service/webrouting-service
               scheduler-service/scheduler-service
               status-service] ~services)
-     status-service-config
+     ~config
      (do ~@body)))
+
+(defmacro with-status-service
+  "Macro to start the status service and its dependencies (jetty9 and
+  webrouting service), along with any other services desired. Provides
+  a default tk config"
+  [app services & body]
+  `(with-status-service-with-config
+    ~app ~services status-service-config ~@body))
 
 (def alerts [{:severity :error
               :message "Alert! Alert"}])
@@ -469,3 +478,35 @@
                  :state "running"}
                 (dissoc body :status)))
          (is (map? (get-in body [:status :experimental :jvm-metrics]))))))))
+
+(deftest status-debug-logging-test
+  (testing "status service logs debug data when setting is enabled"
+    (with-test-logging
+     (with-logger-event-maps
+      "puppetlabs.trapperkeeper.services.status.status-debug-logging"
+      event-maps
+      (with-status-service-with-config
+       app
+       []
+       (merge status-service-config
+              {:status {:debug-logging {:interval-milliseconds 10}}})
+       (Thread/sleep 100)
+       ; The only thing that's logged from that namespace should be the status data
+       ; so any of the events will work
+       (let [log-event (first @event-maps)
+             status-json-string (:message log-event)
+             status-data (json/parse-string status-json-string)]
+         (is (= "running" (get status-data "state"))))))))
+  (testing "status service does not log debug data when setting is not present"
+    (with-test-logging
+     (with-logger-event-maps
+      "puppetlabs.trapperkeeper.services.status.status-debug-logging"
+      event-maps
+      (with-status-service
+       app
+       []
+       ; Can't prove that with a longer sleep something wouldn't have been logged,
+       ; so this sleep time is a bit arbitrary
+       (Thread/sleep 100)
+       (testing "no events have been logged"
+         (is (empty? @event-maps))))))))
