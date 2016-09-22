@@ -40,10 +40,11 @@
       (add-ring-handler this handler))
     (let [debug-logging-config (schema/validate status-core/DebugLoggingConfig
                                                 (get-in-config [:status :debug-logging]))
-          debug-logging-interval (:interval-milliseconds debug-logging-config)]
-      (when debug-logging-interval
-        (log/info "Starting background logging of status data")
-        (interspaced debug-logging-interval status-logging/log-status)))
+          interval-minutes (:interval-minutes debug-logging-config)]
+      (when interval-minutes
+        (let [interval-milliseconds (* 60000 interval-minutes)]
+          (log/info "Starting background logging of status data")
+          (interspaced interval-milliseconds status-logging/log-status))))
     context)
 
   (stop [this context]

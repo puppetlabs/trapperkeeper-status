@@ -489,7 +489,8 @@
        app
        []
        (merge status-service-config
-              {:status {:debug-logging {:interval-milliseconds 10}}})
+              ; 30 milliseconds
+              {:status {:debug-logging {:interval-minutes 0.0005}}})
        (Thread/sleep 100)
        ; The only thing that's logged from that namespace should be the status data
        ; so any of the events will work

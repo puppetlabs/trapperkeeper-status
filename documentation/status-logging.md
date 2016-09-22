@@ -9,7 +9,7 @@ To take advantage of this you must do two things:
     ```
     status: {
         debug-logging: {
-            interval-milliseconds: 2000,
+            interval-minutes: 5,
         }
     }
     ```
