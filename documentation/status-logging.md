@@ -4,12 +4,12 @@ TK-status can periodically log status data to a file in JSON format.
 
 To take advantage of this you must do two things:
 
-1. Enable logging through you TK app's configuration. For example, to log every 2 seconds, your configuration might look like this:
+1. Enable logging through your TK app's configuration. For example, to log every 30 minutes, your configuration might look like this:
 
     ```
     status: {
         debug-logging: {
-            interval-minutes: 5,
+            interval-minutes: 30,
         }
     }
     ```
@@ -35,7 +35,7 @@ To take advantage of this you must do two things:
     </appender>
 
     <!-- without additivity="false", the status log messages will be sent to every other appender as well-->
-    <logger name="puppetlabs.trapperkeeper.services.status.status-logging" additivity="false">
+    <logger name="puppetlabs.trapperkeeper.services.status.status-debug-logging" additivity="false">
             <appender-ref ref="STATUS"/>
     </logger>
     ```
@@ -49,7 +49,7 @@ To take advantage of this you must do two things:
         </encoder>
     </appender>
 
-    <logger name="puppetlabs.trapperkeeper.services.status.status-logging" additivity="false">
+    <logger name="puppetlabs.trapperkeeper.services.status.status-debug-logging" additivity="false">
         <appender-ref ref="STATUS"/>
     </logger>
     ```
