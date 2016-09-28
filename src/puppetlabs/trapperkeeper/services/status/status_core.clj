@@ -80,6 +80,9 @@
    :up-time-ms WholeMilliseconds
    :start-time-ms WholeMilliseconds})
 
+(def DebugLoggingConfig
+  (schema/maybe {:interval-minutes schema/Num}))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
@@ -485,6 +488,11 @@
               (level>= :info) identity
               (level>= :debug) (assoc-in [:experimental :jvm-metrics]
                                          (get-jvm-metrics)))}))
+
+(schema/defn status-latest-version :- StatusCallbackResponse
+  "This function will return the status data from the latest version of the API"
+  [level :- ServiceStatusDetailLevel]
+  (v1-status level))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Status Proxy

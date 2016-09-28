@@ -2,7 +2,9 @@
   (:require [clojure.tools.logging :as log]
             [puppetlabs.trapperkeeper.core :refer [defservice]]
             [puppetlabs.trapperkeeper.services :refer [service-context]]
-            [puppetlabs.trapperkeeper.services.status.status-core :as status-core]))
+            [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
+            [puppetlabs.trapperkeeper.services.status.status-debug-logging :as status-logging]
+            [schema.core :as schema]))
 
 (defprotocol StatusService
   (register-status [this service-name service-version status-version status-fn]
@@ -20,7 +22,9 @@
 
 (defservice status-service
   StatusService
-  [[:WebroutingService add-ring-handler get-route]]
+  [[:WebroutingService add-ring-handler get-route]
+   [:ConfigService get-in-config]
+   [:SchedulerService interspaced]]
 
   (init [this context]
     (assoc context :status-fns (atom {})))
@@ -34,6 +38,13 @@
     (let [path (get-route this)
           handler (status-core/build-handler path (deref (:status-fns context)))]
       (add-ring-handler this handler))
+    (let [debug-logging-config (schema/validate status-core/DebugLoggingConfig
+                                                (get-in-config [:status :debug-logging]))
+          interval-minutes (:interval-minutes debug-logging-config)]
+      (when interval-minutes
+        (let [interval-milliseconds (* 60000 interval-minutes)]
+          (log/info "Starting background logging of status data")
+          (interspaced interval-milliseconds status-logging/log-status))))
     context)
 
   (stop [this context]

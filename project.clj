@@ -42,6 +42,7 @@
 
                  [puppetlabs/kitchensink ~ks-version]
                  [puppetlabs/trapperkeeper ~tk-version]
+                 [puppetlabs/trapperkeeper-scheduler "0.0.1"]
                  [puppetlabs/ring-middleware "1.0.0"]
                  [puppetlabs/comidi "0.3.1"]]
 

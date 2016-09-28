@@ -8,8 +8,8 @@
     [puppetlabs.trapperkeeper.testutils.logging :refer [with-test-logging]]
     [puppetlabs.trapperkeeper.services.status.status-service :refer [status-service]]
     [puppetlabs.trapperkeeper.services.status.status-proxy-service :refer [status-proxy-service]]
-    [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
     [puppetlabs.trapperkeeper.services.webrouting.webrouting-service :as webrouting-service]
+    [puppetlabs.trapperkeeper.services.scheduler.scheduler-service :as scheduler-service]
     [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9-service]))
 
 (use-fixtures :once schema-test/validate-schemas)
@@ -59,7 +59,8 @@
        webrouting-service/webrouting-service
        status-service
        foo-service
-       bar-service]
+       bar-service
+       scheduler-service/scheduler-service]
       ssl-status-service-config
       ; Start the proxy service
       (with-app-with-config
@@ -151,6 +152,7 @@
         [jetty9-service/jetty9-service
          webrouting-service/webrouting-service
          status-service
+         scheduler-service/scheduler-service
          status-count-service]
         ssl-status-service-config
         ; Start the proxy service
