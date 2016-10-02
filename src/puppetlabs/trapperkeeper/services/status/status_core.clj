@@ -79,10 +79,15 @@
   {:max schema/Int
    :used schema/Int})
 
+(def GcStatsV1
+  {schema/Str {:count schema/Int
+               :total-time-ms schema/Int}})
+
 (def JvmMetricsV1
   {:heap-memory MemoryUsageV1
    :non-heap-memory MemoryUsageV1
    :file-descriptors FileDescriptorUsageV1
+   :gc-stats GcStatsV1
    :up-time-ms WholeMilliseconds
    :start-time-ms WholeMilliseconds})
 
@@ -155,12 +160,19 @@
 
 (schema/defn ^:always-validate get-jvm-metrics :- JvmMetricsV1
   []
-  (let [runtime-bean (ManagementFactory/getRuntimeMXBean)]
+  (let [runtime-bean (ManagementFactory/getRuntimeMXBean)
+        gc-beans (jmx/mbean-names "java.lang:name=*,type=GarbageCollector")]
     {:heap-memory (jmx/read "java.lang:type=Memory" :HeapMemoryUsage)
      :non-heap-memory (jmx/read "java.lang:type=Memory" :NonHeapMemoryUsage)
      :file-descriptors (setutils/rename-keys
                         (jmx/read "java.lang:type=OperatingSystem" [:OpenFileDescriptorCount :MaxFileDescriptorCount])
                         {:OpenFileDescriptorCount :used :MaxFileDescriptorCount :max})
+     :gc-stats (into {} (for [gc gc-beans]
+                          (let [gc-name (.getKeyProperty gc "name")
+                                gc-info (setutils/rename-keys
+                                         (jmx/read gc [:CollectionCount :CollectionTime])
+                                         {:CollectionCount :count :CollectionTime :total-time-ms})]
+                            {gc-name gc-info})))
      :up-time-ms (.getUptime runtime-bean)
      :start-time-ms (.getStartTime runtime-bean)}))
 
