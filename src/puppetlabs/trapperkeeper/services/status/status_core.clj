@@ -1,5 +1,6 @@
 (ns puppetlabs.trapperkeeper.services.status.status-core
   (:require [clojure.tools.logging :as log]
+            [clojure.set :as setutils]
             [schema.core :as schema]
             [schema.utils :refer [validation-error-explain]]
             [ring.middleware.defaults :as ring-defaults]
@@ -74,9 +75,14 @@
    :max schema/Int
    :used schema/Int})
 
+(def FileDescriptorUsageV1
+  {:max schema/Int
+   :used schema/Int})
+
 (def JvmMetricsV1
   {:heap-memory MemoryUsageV1
    :non-heap-memory MemoryUsageV1
+   :file-descriptors FileDescriptorUsageV1
    :up-time-ms WholeMilliseconds
    :start-time-ms WholeMilliseconds})
 
@@ -152,6 +158,9 @@
   (let [runtime-bean (ManagementFactory/getRuntimeMXBean)]
     {:heap-memory (jmx/read "java.lang:type=Memory" :HeapMemoryUsage)
      :non-heap-memory (jmx/read "java.lang:type=Memory" :NonHeapMemoryUsage)
+     :file-descriptors (setutils/rename-keys
+                        (jmx/read "java.lang:type=OperatingSystem" [:OpenFileDescriptorCount :MaxFileDescriptorCount])
+                        {:OpenFileDescriptorCount :used :MaxFileDescriptorCount :max})
      :up-time-ms (.getUptime runtime-bean)
      :start-time-ms (.getStartTime runtime-bean)}))
 
