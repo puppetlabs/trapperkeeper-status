@@ -174,7 +174,7 @@
   (let [version (versioneer/get-version group-id artifact-id)]
     (when (empty? version)
       (throw (IllegalStateException.
-               (i18n/tru "Unable to find version number for ''{0}/{1}'"
+               (i18n/tru "Unable to find version number for ''{0}/{1}''"
                  group-id
                  artifact-id))))
     version))
@@ -460,15 +460,16 @@
         (middleware/wrap-uncaught-errors t))))
 
 (defn build-handler [path status-fns]
-  (comidi/routes->handler
-   (comidi/wrap-routes
-    (comidi/context path
-      (comidi/context "/v1"
-        (-> (build-json-routes "/services" status-fns)
-            (comidi/wrap-routes (errors-by-type-middleware :json)))
-        (-> (build-plaintext-routes "/simple" status-fns)
-            (comidi/wrap-routes (errors-by-type-middleware :plain)))))
-    #(ring-defaults/wrap-defaults % ring-defaults/api-defaults))))
+  (i18n/locale-negotiator
+    (comidi/routes->handler
+     (comidi/wrap-routes
+      (comidi/context path
+        (comidi/context "/v1"
+          (-> (build-json-routes "/services" status-fns)
+              (comidi/wrap-routes (errors-by-type-middleware :json)))
+          (-> (build-plaintext-routes "/simple" status-fns)
+              (comidi/wrap-routes (errors-by-type-middleware :plain)))))
+      #(ring-defaults/wrap-defaults % ring-defaults/api-defaults)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Status Service Status

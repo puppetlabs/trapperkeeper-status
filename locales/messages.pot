@@ -38,7 +38,7 @@ msgid ""
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/services/status/status_core.clj
-msgid "Unable to find version number for ''{0}/{1}'"
+msgid "Unable to find version number for ''{0}/{1}''"
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/services/status/status_core.clj
