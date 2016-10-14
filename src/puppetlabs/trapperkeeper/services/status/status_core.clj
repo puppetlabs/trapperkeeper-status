@@ -460,16 +460,15 @@
         (middleware/wrap-uncaught-errors t))))
 
 (defn build-handler [path status-fns]
-  (i18n/locale-negotiator
-    (comidi/routes->handler
-     (comidi/wrap-routes
-      (comidi/context path
-        (comidi/context "/v1"
-          (-> (build-json-routes "/services" status-fns)
-              (comidi/wrap-routes (errors-by-type-middleware :json)))
-          (-> (build-plaintext-routes "/simple" status-fns)
-              (comidi/wrap-routes (errors-by-type-middleware :plain)))))
-      #(ring-defaults/wrap-defaults % ring-defaults/api-defaults)))))
+  (comidi/routes->handler
+   (comidi/wrap-routes
+    (comidi/context path
+      (comidi/context "/v1"
+        (-> (build-json-routes "/services" status-fns)
+            (comidi/wrap-routes (errors-by-type-middleware :json)))
+        (-> (build-plaintext-routes "/simple" status-fns)
+            (comidi/wrap-routes (errors-by-type-middleware :plain)))))
+    #(i18n/locale-negotiator (ring-defaults/wrap-defaults % ring-defaults/api-defaults)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Status Service Status
