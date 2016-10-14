@@ -4,7 +4,8 @@
             [puppetlabs.trapperkeeper.services :refer [service-context]]
             [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
             [puppetlabs.trapperkeeper.services.status.status-debug-logging :as status-logging]
-            [schema.core :as schema]))
+            [schema.core :as schema]
+            [puppetlabs.i18n.core :as i18n]))
 
 (defprotocol StatusService
   (register-status [this service-name service-version status-version status-fn]
@@ -34,7 +35,7 @@
                      status-core/status-service-version
                      1
                      (partial status-core/v1-status))
-    (log/info "Registering status service HTTP API at /status")
+    (log/info (i18n/trs "Registering status service HTTP API at /status"))
     (let [path (get-route this)
           handler (status-core/build-handler path (deref (:status-fns context)))]
       (add-ring-handler this handler))
@@ -52,7 +53,7 @@
     context)
 
   (register-status [this service-name service-version status-version status-fn]
-    (log/infof "Registering status callback function for %s service" service-name)
+    (log/infof (i18n/trs "Registering status callback function for {0} service" service-name))
     (status-core/update-status-context (:status-fns (service-context this))
                                        service-name service-version status-version status-fn))
 

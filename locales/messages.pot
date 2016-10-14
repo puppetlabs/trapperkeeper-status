@@ -1,0 +1,101 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Puppet <docs@puppet.com>
+# This file is distributed under the same license as the puppetlabs.trapperkeeper_status package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: puppetlabs.trapperkeeper_status \n"
+"Report-Msgid-Bugs-To: docs@puppet.com\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "{0} timed out, shutting down background task"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid ""
+"Cannot register multiple callbacks for a single service with different "
+"service versions."
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "Service function already exists for service {0} with status version {1}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid ""
+"The proxy-target-url ''{0}'' has an unsupported protocol ''{1}''. Must be "
+"either http or https"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "Unable to find version number for ''{0}/{1}''"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "Status check malformed: {0}"
+msgstr ""
+
+#. if we get here it's almost certainly because the timeout was reached,
+#. so the macro already has a return value and we don't need to bother
+#. returning one
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "Status callback interrupted"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "Status check threw an exception"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "No status function with version {0} found for service {1}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "No service info found for service {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "Invalid level: {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "Invalid service_status_version. Should be an integer but was {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "Invalid timeout. Should be an integer but was {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "Invalid timeout. Timeout must be greater than zero but was {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "not found: {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "No status information found for service {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_proxy_service.clj
+msgid "Initializing status service proxy"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_service.clj
+msgid "Registering status service HTTP API at /status"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_service.clj
+msgid "Registering status callback function for {0} service"
+msgstr ""

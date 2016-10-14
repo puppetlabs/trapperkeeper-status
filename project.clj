@@ -44,7 +44,8 @@
                  [puppetlabs/trapperkeeper ~tk-version]
                  [puppetlabs/trapperkeeper-scheduler "0.0.1"]
                  [puppetlabs/ring-middleware "1.0.0"]
-                 [puppetlabs/comidi "0.3.1"]]
+                 [puppetlabs/comidi "0.3.1"]
+                 [puppetlabs/i18n "0.4.3"]]
 
   :lein-release {:scm         :git
                  :deploy-via  :lein-deploy}
@@ -65,4 +66,5 @@
                                   [puppetlabs/trapperkeeper-webserver-jetty9 "1.5.6"]
                                   [puppetlabs/kitchensink ~ks-version :classifier "test"]]}}
 
-  :plugins [[lein-release "1.0.5"]])
+  :plugins [[lein-release "1.0.5" :exclusions [org.clojure/clojure]]
+            [puppetlabs/i18n "0.4.3"]])
