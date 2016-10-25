@@ -2,7 +2,13 @@
 
 It is common for services registering callbacks with the status service to include some basic metrics about the health
 of the service.  These metrics are typically only available at the `:debug` status level, and should be limited to a
-fairly small set of data that can be useful for debugging the service's performance or behavior.
+fairly small set of data that can be useful for debugging the service's performance or behavior.  We've also been, for now,
+putting them underneath a key in the map called `"experimental"`, so that we can gather some feedback on UX before
+committing to a long-term API / wire format for the data structure.
+
+Read on to see how some debug metrics of this type are included with `trapperkeeper-status` itself; for an example of
+how a downstream service might register it's own metrics, you can take a look at the
+[JRuby metrics code in the pe-puppet-server-extensions repo.](https://github.com/puppetlabs/pe-puppet-server-extensions/blob/3531fa00ce20c99b662595569edc9ef3d1b4daaa/src/clj/puppetlabs/enterprise/services/jruby/pe_jruby_metrics_service.clj#L54-L58)
 
 ### JVM Metrics
 
