@@ -43,7 +43,7 @@
                  [puppetlabs/kitchensink ~ks-version]
                  [puppetlabs/trapperkeeper ~tk-version]
                  [puppetlabs/trapperkeeper-scheduler "0.0.1"]
-                 [puppetlabs/ring-middleware "1.0.0"]
+                 [puppetlabs/ring-middleware "1.0.1" :exclusions  [org.clojure/clojure org.slf4j/slf4j-api]]
                  [puppetlabs/comidi "0.3.1"]
                  [puppetlabs/i18n "0.4.3"]]
 
@@ -61,7 +61,7 @@
                                   [commons-io "2.5"]
                                   ;; End transitive dependency resolution
 
-                                  [puppetlabs/http-client "0.5.0"]
+                                  [puppetlabs/http-client "0.6.0" :exclusions  [org.clojure/clojure org.slf4j/slf4j-api]]
                                   [puppetlabs/trapperkeeper ~tk-version :classifier "test"]
                                   [puppetlabs/trapperkeeper-webserver-jetty9 "1.5.6"]
                                   [puppetlabs/kitchensink ~ks-version :classifier "test"]]}}
