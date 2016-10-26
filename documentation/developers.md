@@ -13,7 +13,8 @@
 Code sample:
 ```clj
 (ns foo
-  (:require [puppetlabs.trapperkeeper.services.status.status-core :as status-core]))
+  (:require [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
+            [schema.core :as schema]))
 
 (schema/defn ^:always-validate
   v1-status-callback :- status-core/StatusCallbackResponse
