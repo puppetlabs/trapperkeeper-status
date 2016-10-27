@@ -46,9 +46,9 @@ surface :alerts should query at info level.
 The `puppetlabs.trapperkeeper.services.status.status-core` namespace contains
 some utilities to aid in the implementation of your status functions.  In
 particular, the `level->int` function defines an ordering for status levels as
-`:critical < :info < :debug`, and the `compare-levels` function can be used to 
-compare status levels.  This is especially useful in conjunction with the 
-`cond->` macro from `clojure.core`.  Here's an example of how a status function 
+`:critical < :info < :debug`, and the `compare-levels` function can be used to
+compare status levels.  This is especially useful in conjunction with the
+`cond->` macro from `clojure.core`.  Here's an example of how a status function
 might be implemented to utilize the `compare-levels` function:
 ```clj
 (require '[puppetlabs.trapperkeeper.services.status.status-core :as status-core])
@@ -64,6 +64,44 @@ might be implemented to utilize the `compare-levels` function:
                                        :y "y"
                                        :z "y"))}))
 ```
+
+### Implementing Alerts
+
+Alerts are returned by the  status function and allow you to expose human
+readable information about the state of your application. This makes it easy
+for status to be displayed and checked by unopinionated consumers. This works
+best if all conditions which may affect the availability of your service
+result in an alert.
+
+Examples:
+```clj
+{:severity :error
+ :message "Cannot connect to database"
+ :type :my-service/database-unavailable
+ :details {}}
+
+{:severity :warning
+ :message "Repo may not be initialized"
+ :type :my-service/uninitialized-repo
+ :details { :repo "some-repo"} }
+```
+
+- `:severity` : The severity of the alert represents how consumers should support it.
+    - `:error` Should be used if and only if the alert is serious enough to
+      prevent the service from being in the `:running` state.
+    - `:warning` Should be used for conditions which will likely result in
+      degraded service without affecting the `:state`
+    - `:info` : Should be used for other alerts that do not impact the
+      functioning of the service. These should not be present when the status
+      level is greater than info.
+- `:message` : A human readable string that can be displayed to users.
+- `:type` : This can be used by consumer logic to find particular alerts that
+  are important to them. `:type` is optional but should be included.
+- `:details` : A map of with more computer readable information  about the
+  cause of the alert. The schema of details must be the same for all alerts
+  of the same type. If multiple alerts of a type are possible they should be
+  distinguishable by details. `:details` is optional key but should be
+  included.
 
 ## Exposing the /status endpoint
 

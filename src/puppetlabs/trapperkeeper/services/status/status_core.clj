@@ -30,7 +30,9 @@
 
 (def Alert
   {:severity (schema/enum :error :warning :info)
-   :message schema/Str})
+   :message schema/Str
+   (schema/optional-key :type) schema/Keyword
+   (schema/optional-key :details) {schema/Keyword schema/Any}})
 
 (def StatusCallbackResponse
   {:state State
