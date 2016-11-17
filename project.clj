@@ -2,7 +2,7 @@
 (def ks-version "1.3.0")
 
 
-(defproject puppetlabs/trapperkeeper-status "0.6.0-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper-status "0.6.0"
   :description "A trapperkeeper service for getting the status of other trapperkeeper services."
   :url "https://github.com/puppetlabs/trapperkeeper-status"
   :license {:name "Apache License, Version 2.0"
