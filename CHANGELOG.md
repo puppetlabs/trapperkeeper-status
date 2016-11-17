@@ -1,3 +1,13 @@
+## 0.6.0
+
+This is a feature release.
+
+* Add ability for TK-status to periodically log status data to a file in
+  JSON format
+
+* Add GC counts and file descriptor usage to the `jvm-metrics` section of the
+  status output
+
 ## 0.5.0
 
 This is a feature release.
