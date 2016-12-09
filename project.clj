@@ -1,4 +1,4 @@
-(def tk-version "1.4.0")
+(def tk-version "1.5.1")
 (def ks-version "1.3.0")
 
 
@@ -23,7 +23,6 @@
                  [org.clojure/tools.logging "0.3.1"]
                  [org.clojure/tools.reader "1.0.0-alpha1"]
                  [org.clojure/tools.trace "0.7.9"]
-                 [org.slf4j/slf4j-api "1.7.13"]
                  ;; end list of version conflict resolution dependencies
 
                  [cheshire "5.6.1"]
@@ -61,7 +60,7 @@
                                   [commons-io "2.5"]
                                   ;; End transitive dependency resolution
 
-                                  [puppetlabs/http-client "0.5.0"]
+                                  [puppetlabs/http-client "0.6.0"]
                                   [puppetlabs/trapperkeeper ~tk-version :classifier "test"]
                                   [puppetlabs/trapperkeeper-webserver-jetty9 "1.5.6"]
                                   [puppetlabs/kitchensink ~ks-version :classifier "test"]]}}
