@@ -31,6 +31,9 @@
     (assoc context :status-fns (atom {})))
 
   (start [this context]
+   (let [config (status-core/validate-config (get-in-config [:status]))]
+     (status-core/schedule-bg-tasks interspaced status-logging/log-status config))
+
     (register-status this status-core/status-service-name
                      status-core/status-service-version
                      1
@@ -39,13 +42,6 @@
     (let [path (get-route this)
           handler (status-core/build-handler path (deref (:status-fns context)))]
       (add-ring-handler this handler))
-    (let [debug-logging-config (schema/validate status-core/DebugLoggingConfig
-                                                (get-in-config [:status :debug-logging]))
-          interval-minutes (:interval-minutes debug-logging-config)]
-      (when interval-minutes
-        (let [interval-milliseconds (* 60000 interval-minutes)]
-          (log/info "Starting background logging of status data")
-          (interspaced interval-milliseconds status-logging/log-status))))
     context)
 
   (stop [this context]

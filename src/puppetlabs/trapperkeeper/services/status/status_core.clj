@@ -14,7 +14,8 @@
             [puppetlabs.i18n.core :as i18n])
   (:import (java.net URL)
            (java.util.concurrent CancellationException)
-           (java.lang.management ManagementFactory)))
+           (java.lang.management ManagementFactory)
+           (clojure.lang IFn)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -94,6 +95,9 @@
 
 (def DebugLoggingConfig
   (schema/maybe {:interval-minutes schema/Num}))
+
+(def StatusServiceConfig
+  {(schema/optional-key :debug-logging) DebugLoggingConfig})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
@@ -176,6 +180,22 @@
 ;;; Public
 
 (def status-service-name "status-service")
+
+(schema/defn ^:always-validate validate-config :- StatusServiceConfig
+  [config]
+  (let [config (or config {})]
+    (schema/validate DebugLoggingConfig (:debug-logging config))
+    config))
+
+(schema/defn ^:always-validate schedule-bg-tasks
+  [interspaced :- IFn
+   log-status :- IFn
+   config :- StatusServiceConfig]
+  (let [interval-minutes (get-in config [:debug-logging :interval-minutes])]
+    (when interval-minutes
+      (let [interval-milliseconds (* 60000 interval-minutes)]
+        (log/info "Starting background logging of status data")
+        (interspaced interval-milliseconds log-status)))))
 
 (schema/defn ^:always-validate nominal? :- schema/Bool
   [status :- ServiceStatus]
