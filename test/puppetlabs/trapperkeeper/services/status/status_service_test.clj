@@ -237,7 +237,7 @@
                 "service_status_version" 1
                 "state" "unknown"
                 "detail_level" "info"
-                "status" "Status check malformed: (not (map? \"baz\"))"
+                "status" "Status check response for baz malformed: (not (map? \"baz\"))"
                 "active_alerts" []
                 "service_name" "baz"}
               (parse-response resp)))))

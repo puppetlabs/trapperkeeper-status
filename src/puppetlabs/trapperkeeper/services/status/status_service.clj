@@ -62,4 +62,4 @@
 
   (get-status [this service-name level status-version timeout]
     (let [status-fn (status-core/get-status-fn (:status-fns (service-context this)) service-name status-version)]
-      (status-core/guarded-status-fn-call status-fn level timeout))))
+      (status-core/guarded-status-fn-call service-name status-fn level timeout))))
