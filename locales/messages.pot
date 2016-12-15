@@ -42,18 +42,26 @@ msgid "Unable to find version number for ''{0}/{1}''"
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/services/status/status_core.clj
-msgid "Status check malformed: {0}"
+msgid "Status check timed out after {0} seconds"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "Status callback for {0}"
+msgstr ""
+
+#: src/puppetlabs/trapperkeeper/services/status/status_core.clj
+msgid "Status check response for {0} malformed: {1}"
 msgstr ""
 
 #. if we get here it's almost certainly because the timeout was reached,
 #. so the macro already has a return value and we don't need to bother
 #. returning one
 #: src/puppetlabs/trapperkeeper/services/status/status_core.clj
-msgid "Status callback interrupted"
+msgid "Status callback for {0} interrupted"
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/services/status/status_core.clj
-msgid "Status check threw an exception"
+msgid "Status check for {0} threw an exception"
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/services/status/status_core.clj
