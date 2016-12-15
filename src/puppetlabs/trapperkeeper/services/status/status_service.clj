@@ -28,17 +28,26 @@
    [:SchedulerService interspaced]]
 
   (init [this context]
-    (assoc context :status-fns (atom {})))
+    (assoc context :status-fns (atom {})
+                   :last-cpu-snapshot (atom {:snapshot {:uptime -1
+                                                        :process-cpu-time -1
+                                                        :process-gc-time -1}
+                                             :cpu-usage -1
+                                             :gc-cpu-usage -1})))
 
   (start [this context]
-   (let [config (status-core/validate-config (get-in-config [:status]))]
-     (status-core/schedule-bg-tasks interspaced status-logging/log-status config))
+   (let [config (status-core/validate-config (get-in-config [:status]))
+         cpu-snapshot (:last-cpu-snapshot context)]
+     (status-core/schedule-bg-tasks interspaced
+                                    (partial status-logging/log-status cpu-snapshot)
+                                    config
+                                    cpu-snapshot)
 
-    (register-status this status-core/status-service-name
-                     status-core/status-service-version
-                     1
-                     (partial status-core/v1-status))
-    (log/info (i18n/trs "Registering status service HTTP API at /status"))
+     (register-status this status-core/status-service-name
+                      status-core/status-service-version
+                      1
+                      (partial status-core/v1-status cpu-snapshot)))
+         (log/info (i18n/trs "Registering status service HTTP API at /status"))
     (let [path (get-route this)
           handler (status-core/build-handler path (deref (:status-fns context)))]
       (add-ring-handler this handler))
