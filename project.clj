@@ -19,8 +19,15 @@
                  [slingshot]
                  [prismatic/schema]
                  [trptcolin/versioneer]
-                 [ring/ring-defaults]
+                 ;; ring-defaults brings in a bad, old version of the servlet-api, which
+                 ;; now has a new artifact name (javax.servlet/javax.servlet-api).  If we
+                 ;; don't exclude the old one here, they'll both be brought in, and consumers
+                 ;; will be subject to the whims of which one shows up on the classpath first.
+                 ;; thus, we need to use exclusions here, even though we'd normally resolve
+                 ;; this type of thing by just specifying a fixed dependency version.
+                 [ring/ring-defaults :exclusions [javax.servlet/servlet-api]]
                  [org.clojure/java.jmx]
+                 [org.clojure/tools.logging]
 
                  [puppetlabs/kitchensink]
                  [puppetlabs/trapperkeeper]
