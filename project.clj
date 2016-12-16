@@ -35,9 +35,9 @@
                                      :sign-releases false}]]
 
   :profiles {:dev {:dependencies [[puppetlabs/http-client]
-                                  [puppetlabs/trapperkeeper nil :classifier "test"]
+                                  [puppetlabs/trapperkeeper :classifier "test"]
                                   [puppetlabs/trapperkeeper-webserver-jetty9]
-                                  [puppetlabs/kitchensink nil :classifier "test"]]}}
+                                  [puppetlabs/kitchensink :classifier "test"]]}}
 
   :plugins [[lein-parent "0.3.1"]
             [puppetlabs/i18n "0.4.3"]])
