@@ -97,31 +97,37 @@
               (= :unknown (:state result)))))))))
 
 (deftest v1-status-test
-  (testing "no data at critical level"
-   (is (= {:state :running
-           :status {}} (v1-status :critical))))
-  (testing "no data at info level"
-    (is (= {:state :running
-            :status {}} (v1-status :info))))
-  (testing "jvm metrics at debug level"
-    (let [status (v1-status :debug)]
-      (is (= {:state :running} (dissoc status :status)))
-      (is (= #{:experimental} (ks/keyset (:status status))))
-      (is (= #{:jvm-metrics} (ks/keyset (get-in status [:status :experimental]))))
-      (let [jvm-metrics (get-in status [:status :experimental :jvm-metrics])]
-        (is (= #{:heap-memory :non-heap-memory
-                 :file-descriptors :gc-stats
-                 :up-time-ms :start-time-ms} (ks/keyset jvm-metrics)))
-        (is (= #{:committed :init :max :used} (ks/keyset (:heap-memory jvm-metrics))))
-        (is (= #{:committed :init :max :used} (ks/keyset (:non-heap-memory jvm-metrics))))
-        (is (every? #(< 0 %) (vals (:heap-memory jvm-metrics))))
-        (is (every? #(or (< 0 %) (= -1 %)) (vals (:non-heap-memory jvm-metrics))))
-        (is (= #{:max :used} (ks/keyset (:file-descriptors jvm-metrics))))
-        (is (every? #(< 0 %) (vals (:file-descriptors jvm-metrics))))
-        (is (every? #(= #{:count :total-time-ms} (ks/keyset %))
-                    (vals (:gc-stats jvm-metrics))))
-        (is (every? #(<= 0 %) ;; Possible that no major collections occurred.
-                    (mapcat #(vals %)
-                      (vals (:gc-stats jvm-metrics)))))
-        (is (< 0 (:up-time-ms jvm-metrics)))
-        (is (< 0 (:start-time-ms jvm-metrics)))))))
+  (let [last-cpu-snapshot (atom {:snapshot {:uptime -1
+                                            :process-cpu-time -1
+                                            :process-gc-time -1}
+                                 :cpu-usage -1
+                                 :gc-cpu-usage -1})]
+    (testing "no data at critical level"
+      (is (= {:state :running
+              :status {}} (v1-status last-cpu-snapshot :critical))))
+    (testing "no data at info level"
+      (is (= {:state :running
+              :status {}} (v1-status last-cpu-snapshot :info))))
+    (testing "jvm metrics at debug level"
+      (let [status (v1-status last-cpu-snapshot :debug)]
+        (is (= {:state :running} (dissoc status :status)))
+        (is (= #{:experimental} (ks/keyset (:status status))))
+        (is (= #{:jvm-metrics} (ks/keyset (get-in status [:status :experimental]))))
+        (let [jvm-metrics (get-in status [:status :experimental :jvm-metrics])]
+          (is (= #{:heap-memory :non-heap-memory
+                   :file-descriptors :gc-stats
+                   :up-time-ms :start-time-ms
+                   :cpu-usage :gc-cpu-usage} (ks/keyset jvm-metrics)))
+          (is (= #{:committed :init :max :used} (ks/keyset (:heap-memory jvm-metrics))))
+          (is (= #{:committed :init :max :used} (ks/keyset (:non-heap-memory jvm-metrics))))
+          (is (every? #(< 0 %) (vals (:heap-memory jvm-metrics))))
+          (is (every? #(or (< 0 %) (= -1 %)) (vals (:non-heap-memory jvm-metrics))))
+          (is (= #{:max :used} (ks/keyset (:file-descriptors jvm-metrics))))
+          (is (every? #(< 0 %) (vals (:file-descriptors jvm-metrics))))
+          (is (every? #(= #{:count :total-time-ms} (ks/keyset %))
+                      (vals (:gc-stats jvm-metrics))))
+          (is (every? #(<= 0 %)                             ;; Possible that no major collections occurred.
+                      (mapcat #(vals %)
+                              (vals (:gc-stats jvm-metrics)))))
+          (is (< 0 (:up-time-ms jvm-metrics)))
+          (is (< 0 (:start-time-ms jvm-metrics))))))))
