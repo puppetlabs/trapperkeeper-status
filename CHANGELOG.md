@@ -1,3 +1,16 @@
+## 0.7.0
+
+This is a feature release.
+
+* [PE-13539](https://tickets.puppetlabs.com/browse/PE-13539) At startup, log
+  version numbers for all services that register themselves with the status
+  service.
+* [TK-414](https://tickets.puppetlabs.com/browse/TK-414) Add metrics about
+  CPU usage and GC CPU usage to the default JVM metrics available from the
+  HTTP endpoint at `debug` level.
+* [TK-401](https://tickets.puppetlabs.com/browse/TK-401) Include service name
+  in log message when a service's callback fails due to error or timeout
+
 ## 0.6.0
 
 This is a feature release.
