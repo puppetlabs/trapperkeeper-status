@@ -538,7 +538,6 @@
          (is (<= 0 (:cpu-usage first-cpu-snapshot)))
          (is (<= 0 (:gc-cpu-usage first-cpu-snapshot)))
 
-
          (testing "CPU metrics are accessible via http"
            (let [resp (http-client/get "http://localhost:8180/status/v1/services/status-service?level=debug")]
              (is (= 200 (:status resp)))

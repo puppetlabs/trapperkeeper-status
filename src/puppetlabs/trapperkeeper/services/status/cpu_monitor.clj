@@ -4,7 +4,6 @@
             [clojure.tools.logging :as log]
             [schema.core :as schema])
   (:import (java.lang.management ManagementFactory)
-           (java.util ArrayList)
            (javax.management AttributeNotFoundException)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -19,6 +18,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
+
+;; NOTE: code in this namespace was ported from the source code for JVisualVM.
 
 (defn- cpu-multiplier*
   []
@@ -37,11 +38,14 @@
 (def gc-bean-names (memoize gc-bean-names*))
 
 (defn get-process-cpu-time
+  "Get the total CPU time spent by the process since startup."
   []
   (let [bean-cpu-time (jmx/read "java.lang:type=OperatingSystem" :ProcessCpuTime)]
     (* bean-cpu-time (cpu-multiplier))))
 
 (defn get-collection-time
+  "Compute the total time spent on Garbage Collection since the process was
+   started, by summing GC collection times from the JMX GC beans."
   []
   (try
     (apply + (map #(jmx/read % :CollectionTime) (gc-bean-names)))
@@ -53,6 +57,8 @@
       0)))
 
 (defn calculate-usage
+  "Given 'before' and 'after' values for processing time, and a delta of time
+   that expired between the two values, compute the percentage of CPU used."
   [process-time prev-process-time uptime-diff]
   (if (or (= -1 prev-process-time) (<= uptime-diff 0))
     0
@@ -63,6 +69,8 @@
 ;;; Public
 
 (schema/defn get-cpu-values :- CpuUsageSnapshot
+  "Given a recent snapshot of CPU Usage data, compute the CPU usage percentage
+  since the snapshot, and return an updated snapshot."
   [last-snapshot :- CpuUsageSnapshot]
   (let [{prev-uptime :uptime
          prev-process-cpu-time :process-cpu-time
