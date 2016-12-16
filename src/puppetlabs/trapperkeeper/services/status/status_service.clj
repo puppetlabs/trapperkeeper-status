@@ -58,7 +58,7 @@
     context)
 
   (register-status [this service-name service-version status-version status-fn]
-    (log/infof (i18n/trs "Registering status callback function for {0} service" service-name))
+    (log/infof (i18n/trs "Registering status callback function for service ''{0}'', version {1}" service-name service-version))
     (status-core/update-status-context (:status-fns (service-context this))
                                        service-name service-version status-version status-fn))
 

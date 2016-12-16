@@ -105,5 +105,5 @@ msgid "Registering status service HTTP API at /status"
 msgstr ""
 
 #: src/puppetlabs/trapperkeeper/services/status/status_service.clj
-msgid "Registering status callback function for {0} service"
+msgid "Registering status callback function for service ''{0}'', version {1}"
 msgstr ""
