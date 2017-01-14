@@ -54,7 +54,8 @@
     context)
 
   (stop [this context]
-    (status-core/reset-status-context! (:status-fns context))
+    (when-let [status-fns (:status-fns context)]
+      (status-core/reset-status-context! status-fns))
     context)
 
   (register-status [this service-name service-version status-version status-fn]
