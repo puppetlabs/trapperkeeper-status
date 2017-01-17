@@ -1,4 +1,4 @@
-(defproject puppetlabs/trapperkeeper-status "0.7.1"
+(defproject puppetlabs/trapperkeeper-status "0.7.2-SNAPSHOT"
   :description "A trapperkeeper service for getting the status of other trapperkeeper services."
   :url "https://github.com/puppetlabs/trapperkeeper-status"
   :license {:name "Apache License, Version 2.0"
