@@ -11,8 +11,8 @@
 
 (def CpuUsageSnapshot
   {:snapshot {:uptime schema/Int
-              :process-cpu-time schema/Int
-              :process-gc-time schema/Int}
+              :process-cpu-time schema/Num
+              :process-gc-time schema/Num}
    :cpu-usage schema/Num
    :gc-cpu-usage schema/Num})
 
