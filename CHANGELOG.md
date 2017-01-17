@@ -1,3 +1,14 @@
+## 0.7.1
+
+This is a bugfix release.
+
+* Fix for a schema error that can cause gc/cpu usage updates to fail when
+  computed process gc and/or cpu times are not whole numbers.
+
+* Fix for an erroneous schema error which could be written to the log
+  in the event that a trapperkeeper app is shutdown before the
+  trapperkeeper-status service is started.
+
 ## 0.7.0
 
 This is a feature release.
