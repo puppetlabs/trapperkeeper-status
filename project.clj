@@ -6,7 +6,7 @@
 
   :min-lein-version "2.7.1"
 
-  :parent-project {:coords [puppetlabs/clj-parent "0.4.3"]
+  :parent-project {:coords [puppetlabs/clj-parent "0.6.1"]
                    :inherit [:managed-dependencies]}
 
   :pedantic? :abort
@@ -47,4 +47,4 @@
                                   [puppetlabs/kitchensink :classifier "test"]]}}
 
   :plugins [[lein-parent "0.3.1"]
-            [puppetlabs/i18n "0.7.1"]])
+            [puppetlabs/i18n "0.8.0"]])
