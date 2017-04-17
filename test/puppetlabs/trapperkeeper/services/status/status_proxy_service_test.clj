@@ -124,7 +124,9 @@
    :body   (str (swap! counter inc))})
 
 (deftest proxy-only-proxies-what-it-should-test
-  (testing "status-proxy-service doesn't proxy things it shouldn't"
+  (testing "status-proxy-service doesn't proxy things it shouldn't.
+            Including direct access to urls it clearly shouldn't be able to
+            and path traversal attacks that indirectly try to access urls"
     ; non-status-endpoint-counter is used to make sure that no requests to the proxy
     ; endpoint end up hitting non status-service endpoints
     (let [non-status-endpoint-counter (atom 0)
@@ -140,7 +142,17 @@
           ; Should not succeed in hitting the endpoints running on the status service server
           bad-proxy-requests ["http://localhost:8181/status-proxy/stats"
                               "http://localhost:8181/status-proxy/nope"
-                              "http://localhost:8181/status-proxy/statuses"]
+                              "http://localhost:8181/status-proxy/statuses"
+                              ; Path traversal attacks. Encodings of '../'
+                              "http://localhost:8181/status-proxy/../nope"
+                              "http://localhost:8181/status-proxy/%2e%2e%2fnope"
+                              "http://localhost:8181/status-proxy/%2e%2e/nope"
+                              "http://localhost:8181/status-proxy/..%2fnope"
+                              ; Encodings of '../../'
+                              "http://localhost:8181/status-proxy/v1/../../nope"
+                              "http://localhost:8181/status-proxy/v1/%2e%2e%2f%2e%2e%2fnope"
+                              "http://localhost:8181/status-proxy/v1/%2e%2e/%2e%2e/nope"
+                              "http://localhost:8181/status-proxy/v1/..%2f..%2fnope"]
           ; Should succeed, used to make sure the counter works right
           good-non-status-endpoint-requests ["https://localhost:9001/stats"
                                              "https://localhost:9001/nope"
