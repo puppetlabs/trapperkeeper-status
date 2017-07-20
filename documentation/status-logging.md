@@ -35,7 +35,7 @@ To take advantage of this you must do two things:
     </appender>
 
     <!-- without additivity="false", the status log messages will be sent to every other appender as well-->
-    <logger name="puppetlabs.trapperkeeper.services.status.status-debug-logging" additivity="false">
+    <logger name="puppetlabs.trapperkeeper.services.status.status-debug-logging" level="debug" additivity="false">
             <appender-ref ref="STATUS"/>
     </logger>
     ```
@@ -49,7 +49,7 @@ To take advantage of this you must do two things:
         </encoder>
     </appender>
 
-    <logger name="puppetlabs.trapperkeeper.services.status.status-debug-logging" additivity="false">
+    <logger name="puppetlabs.trapperkeeper.services.status.status-debug-logging" level="debug" additivity="false">
         <appender-ref ref="STATUS"/>
     </logger>
     ```
