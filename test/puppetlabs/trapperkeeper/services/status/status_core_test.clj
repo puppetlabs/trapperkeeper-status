@@ -124,10 +124,6 @@
           (is (every? #(or (< 0 %) (= -1 %)) (vals (:non-heap-memory jvm-metrics))))
           (is (= #{:max :used} (ks/keyset (:file-descriptors jvm-metrics))))
           (is (every? #(< 0 %) (vals (:file-descriptors jvm-metrics))))
-          (is (every? #(= #{:count :total-time-ms} (ks/keyset %))
-                      (vals (:gc-stats jvm-metrics))))
-          (is (every? #(<= 0 %)                             ;; Possible that no major collections occurred.
-                      (mapcat #(vals %)
-                              (vals (:gc-stats jvm-metrics)))))
+          (is (contains? jvm-metrics :gc-stats))
           (is (< 0 (:up-time-ms jvm-metrics)))
           (is (< 0 (:start-time-ms jvm-metrics))))))))
