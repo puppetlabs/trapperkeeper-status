@@ -1,3 +1,13 @@
+## 0.6.1
+
+This is a minor release. It includes
+
+* [TK-401](https://tickets.puppetlabs.com/browse/TK-401) Include service name
+  in log message when a service's callback fails due to error or timeout
+
+from 0.7.0 to improve debugging for those users pinned to 0.6.x.
+
+
 ## 0.6.0
 
 This is a feature release.
