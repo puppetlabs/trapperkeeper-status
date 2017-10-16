@@ -252,25 +252,26 @@
 
   In each error case, :state is set to :unknown and :status is set to a
   string describing the error."
-  [status-fn :- StatusFn
+  [service-name :- schema/Str
+   status-fn :- StatusFn
    level :- ServiceStatusDetailLevel
    timeout :- WholeSeconds]
    (let [unknown-response (fn [status] {:state :unknown
                                         :status status})
-         timeout-response (unknown-response (format "Status check timed out after %s seconds" timeout))]
-     (with-timeout "Status callback" timeout timeout-response
+         timeout-response (unknown-response (i18n/tru "Status check timed out after {0} seconds" timeout))]
+     (with-timeout (i18n/trs "Status callback for {0}" service-name) timeout timeout-response
        (try
          (let [status (status-fn level)]
            (if-let [schema-failure (schema/check StatusCallbackResponse status)]
-             (unknown-response (i18n/tru "Status check malformed: {0}" (maybe-explain schema-failure)))
+             (unknown-response (i18n/tru "Status check response for {0} malformed: {1}" service-name (maybe-explain schema-failure)))
              status))
          (catch InterruptedException e
            ;; if we get here it's almost certainly because the timeout was reached,
            ;; so the macro already has a return value and we don't need to bother
            ;; returning one
-           (log/error e (i18n/trs "Status callback interrupted")))
+           (log/error e (i18n/trs "Status callback for {0} interrupted" service-name)))
          (catch Exception e
-           (let [error-msg (i18n/trs "Status check threw an exception")]
+           (let [error-msg (i18n/trs "Status check for {0} threw an exception" service-name)]
              (log/error e error-msg)
              (unknown-response (format "%s: %s" error-msg e))))))))
 
@@ -320,7 +321,7 @@
     timeout :- WholeSeconds
     service-status-version :- (schema/maybe schema/Int)]
    (let [status (matching-service-info service-name service service-status-version)
-         callback-resp (guarded-status-fn-call (:status-fn status) level timeout)
+         callback-resp (guarded-status-fn-call service-name (:status-fn status) level timeout)
          data (:status callback-resp)
          state (if-not (schema/check State (:state callback-resp))
                  (:state callback-resp)

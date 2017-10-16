@@ -79,7 +79,7 @@
                                                                                       :status "aw yis"}))
         (with-test-logging
           (let [result (call-status-fn-for-service "quux" (get @status-fns "quux") :debug 0)]
-            (is (logged? #"Status callback timed out" :error))
+            (is (logged? #"Status callback for quux timed out" :error))
             (is (logged? #"CancellationException"))
             (testing "state is set properly"
               (is (= :unknown (:state result))))
@@ -90,7 +90,7 @@
         (update-status-context status-fns "bar" "1.1.0" 1 (fn [_] (throw (Exception. "don't"))))
         (with-test-logging
           (let [result (call-status-fn-for-service "bar" (get @status-fns "bar") :debug 1)]
-            (is (logged? #"Status check threw an exception" :error))
+            (is (logged? #"Status check for bar threw an exception" :error))
             (testing "status contains exception"
               (is (re-find #"don't" (pr-str result))))
             (testing "state is set properly"
