@@ -84,7 +84,8 @@
 
 (def GcStatsV1
   {schema/Str {:count schema/Int
-               :total-time-ms schema/Int}})
+               :total-time-ms schema/Int
+               (schema/optional-key :last-gc-info) {:duration-ms schema/Int}}})
 
 (def JvmMetricsV1
   {:heap-memory MemoryUsageV1
@@ -162,6 +163,22 @@
                         url-string
                         protocol))))))
 
+(defn- read-gc-info
+  "Reads information from a java.lang.management.GarbageCollectorMXBean
+  and returns a hash. The CollectionCount and CollectionTime attributes
+  guarenteed by the GarbageCollectorMXBean interface are returned. The
+  duration field of the LastGcInfo attribute is also returned, if an
+  Oracle JVM is used. These values are useful for detecting an increase
+  in collector activity which signals a memory leak or inefficient code."
+  [gc-name]
+  (let [raw-gc-info (jmx/read gc-name
+                              [:CollectionCount :CollectionTime :LastGcInfo])
+        gc-info {:count (:CollectionCount raw-gc-info)
+                 :total-time-ms (:CollectionTime raw-gc-info)}]
+    (if-let [duration (get-in raw-gc-info [:LastGcInfo :duration])]
+      (assoc gc-info :last-gc-info {:duration-ms duration})
+      gc-info)))
+
 (schema/defn ^:always-validate get-jvm-metrics :- JvmMetricsV1
   [cpu-snapshot :- cpu/CpuUsageSnapshot]
   (let [runtime-bean (ManagementFactory/getRuntimeMXBean)
@@ -173,9 +190,7 @@
                         {:OpenFileDescriptorCount :used :MaxFileDescriptorCount :max})
      :gc-stats (into {} (for [gc gc-beans]
                           (let [gc-name (.getKeyProperty gc "name")
-                                gc-info (setutils/rename-keys
-                                         (jmx/read gc [:CollectionCount :CollectionTime])
-                                         {:CollectionCount :count :CollectionTime :total-time-ms})]
+                                gc-info (read-gc-info gc)]
                             {gc-name gc-info})))
      :cpu-usage (:cpu-usage cpu-snapshot)
      :gc-cpu-usage (:gc-cpu-usage cpu-snapshot)
