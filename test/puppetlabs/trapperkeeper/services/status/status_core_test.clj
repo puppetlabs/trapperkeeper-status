@@ -115,7 +115,7 @@
         (is (= #{:jvm-metrics} (ks/keyset (get-in status [:status :experimental]))))
         (let [jvm-metrics (get-in status [:status :experimental :jvm-metrics])]
           (is (= #{:heap-memory :non-heap-memory
-                   :file-descriptors :gc-stats
+                   :file-descriptors :threading :gc-stats
                    :up-time-ms :start-time-ms
                    :cpu-usage :gc-cpu-usage} (ks/keyset jvm-metrics)))
           (is (= #{:committed :init :max :used} (ks/keyset (:heap-memory jvm-metrics))))
