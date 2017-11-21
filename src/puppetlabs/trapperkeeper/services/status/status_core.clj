@@ -82,6 +82,10 @@
   {:max schema/Int
    :used schema/Int})
 
+(def ThreadingV1
+  {:thread-count schema/Int
+   :peak-thread-count schema/Int})
+
 (def GcStatsV1
   {schema/Str {:count schema/Int
                :total-time-ms schema/Int
@@ -91,6 +95,7 @@
   {:heap-memory MemoryUsageV1
    :non-heap-memory MemoryUsageV1
    :file-descriptors FileDescriptorUsageV1
+   :threading ThreadingV1
    :gc-stats GcStatsV1
    :up-time-ms WholeMilliseconds
    :start-time-ms WholeMilliseconds
@@ -188,6 +193,11 @@
      :file-descriptors (setutils/rename-keys
                         (jmx/read "java.lang:type=OperatingSystem" [:OpenFileDescriptorCount :MaxFileDescriptorCount])
                         {:OpenFileDescriptorCount :used :MaxFileDescriptorCount :max})
+     :threading (setutils/rename-keys
+                  (jmx/read "java.lang:type=Threading"
+                            [:ThreadCount :PeakThreadCount])
+                  {:ThreadCount :thread-count
+                   :PeakThreadCount :peak-thread-count})
      :gc-stats (into {} (for [gc gc-beans]
                           (let [gc-name (.getKeyProperty gc "name")
                                 gc-info (read-gc-info gc)]
