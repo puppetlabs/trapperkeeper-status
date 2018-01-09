@@ -5,24 +5,9 @@
   "internal_list": "https://groups.google.com/a/puppet.com/forum/?hl=en#!forum/discuss-trapperkeeper-maintainers",
   "people": [
     {
-      "github": "aperiodic",
-      "email": "dan.lidral-porter@puppet.com",
-      "name": "Dan Lidral-Porter"
-    },
-    {
       "github": "lindboe",
       "email": "lizzi@puppet.com",
       "name": "Lizzi Lindboe"
-    },
-    {
-      "github": "jpinsonault",
-      "email": "joe.pinsonault@puppet.com",
-      "name": "Joe Pinsonault"
-    },
-    {
-      "github": "rlinehan",
-      "email": "ruth@puppet.com",
-      "name": "Ruth Linehan"
     }
   ]
 }
