@@ -1,4 +1,4 @@
-(defproject puppetlabs/trapperkeeper-status "0.7.2-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper-status "1.0.0-SNAPSHOT"
   :description "A trapperkeeper service for getting the status of other trapperkeeper services."
   :url "https://github.com/puppetlabs/trapperkeeper-status"
   :license {:name "Apache License, Version 2.0"
@@ -6,7 +6,7 @@
 
   :min-lein-version "2.7.1"
 
-  :parent-project {:coords [puppetlabs/clj-parent "1.4.3"]
+  :parent-project {:coords [puppetlabs/clj-parent "1.5.1"]
                    :inherit [:managed-dependencies]}
 
   :pedantic? :abort

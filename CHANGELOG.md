@@ -1,3 +1,20 @@
+## 1.0.0
+This is a feature release
+
+* [TK-460](https://tickets.puppetlabs.com/browse/TK-460)
+  Add thread counts to status metrics
+
+* [TK-454](https://tickets.puppetlabs.com/browse/TK-454)
+  Add last GC duration to gc-stats
+
+* (maint) Remove support for Java 7
+
+Internally we've also bumped all of our dependencies (necessitating
+the dropping of Java 7) and allowing us to automate i18n workflows.
+
+Much thanks to @Sharpie (Charlie Sharpsteen) for his contribution
+of both features!
+
 ## 0.7.1
 
 This is a bugfix release.
