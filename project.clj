@@ -1,4 +1,4 @@
-(defproject puppetlabs/trapperkeeper-status "1.0.1-SNAPSHOT"
+(defproject puppetlabs/trapperkeeper-status "1.1.0-SNAPSHOT"
   :description "A trapperkeeper service for getting the status of other trapperkeeper services."
   :url "https://github.com/puppetlabs/trapperkeeper-status"
   :license {:name "Apache License, Version 2.0"
@@ -28,7 +28,8 @@
                  [puppetlabs/trapperkeeper-scheduler]
                  [puppetlabs/ring-middleware]
                  [puppetlabs/comidi]
-                 [puppetlabs/i18n]]
+                 [puppetlabs/i18n]
+                 [puppetlabs/trapperkeeper-authorization]]
 
   :deploy-repositories [["releases" {:url "https://clojars.org/repo"
                                      :username :env/clojars_jenkins_username

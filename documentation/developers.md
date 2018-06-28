@@ -92,6 +92,26 @@ web-router-service: {
 For information on proxying plaintext `/status` requests to an otherwise HTTPS
 protected server, see the [Status Proxy documentation](./status-proxy-service.md).
 
+Applications using trapperkeeper can require authentication for the status endpoint.
+For this to happen, tk-auth must be included in the application's bootstrap config
+file.  Then, to enable authentication, the application's tk-auth
+configuration file needs to be updated to include this authorization rule:
+
+```
+{
+   # Disallow unauthenticated access to the status service endpoint
+    match-request: {
+        path: "/status/v1/services"
+        type: path
+        method: get
+    }
+    allow-unauthenticated: false
+    allow: "*"
+    sort-order: 500
+    name: "puppetlabs status service"
+}
+```
+
 ## Details
 
 See [Query API](./query-api.md) and [Wire Format](./wire-formats.md) for details
