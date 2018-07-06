@@ -10,15 +10,30 @@
             [puppetlabs.trapperkeeper.services.status.status-service :refer [status-service get-status]]
             [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
             [puppetlabs.trapperkeeper.services.webrouting.webrouting-service :as webrouting-service]
+            [puppetlabs.trapperkeeper.services.authorization.authorization-service :as tk-auth]
             [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9-service]
             [puppetlabs.trapperkeeper.services.scheduler.scheduler-service :as scheduler-service]
             [puppetlabs.kitchensink.core :as ks]))
 
 (use-fixtures :once schema-test/validate-schemas)
 
+(def dev-resources "./dev-resources/puppetlabs/trapperkeeper-status/status-proxy-service-test")
+(def common-ssl-config
+  {:ssl-cert    (str dev-resources "/ssl/certs/localhost.pem")
+   :ssl-key     (str dev-resources "/ssl/private_keys/localhost.pem")
+   :ssl-ca-cert (str dev-resources "/ssl/certs/ca.pem")})
+
+(def incomplete-ssl-config {:ssl-ca-cert (str dev-resources "/ssl/certs/ca.pem")})
+
 (def status-service-config
   {:webserver {:port 8180
                :host "0.0.0.0"}
+   :web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}})
+
+(def ssl-status-service-config
+  {:webserver (merge common-ssl-config {:ssl-port 8180
+                                        :ssl-host "0.0.0.0"
+                                        :client-auth "want"})
    :web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/status"}})
 
 (defn parse-response
@@ -191,6 +206,62 @@
         {:web-router-service {:puppetlabs.trapperkeeper.services.status.status-service/status-service "/alternate-status"}})
       (let [resp (http-client/get "http://localhost:8180/alternate-status/v1/services")]
         (is (= 200 (:status resp)))))))
+
+(deftest auth-service-ssl-status-endpoint-test
+  (testing "with auth service running and cert auth enabled for endpoint"
+    (with-app-with-config
+      app
+      [jetty9-service/jetty9-service
+       webrouting-service/webrouting-service
+       scheduler-service/scheduler-service
+       status-service
+       tk-auth/authorization-service]
+       (merge ssl-status-service-config
+         {:authorization {:version 1
+                          :rules [{:match-request
+                                   {:path "/status/v1/services"
+                                    :type "path"
+                                    :method "get"}
+                                   :sort-order 500
+                                   :allow "*"
+                                   :allow-unauthenticated false
+                                   :name "puppetlabs status service"}]}})
+        (testing "without authentication returns 403"
+          (with-test-logging
+            (let [resp (http-client/get "https://localhost:8180/status/v1/services" incomplete-ssl-config)]
+              (is (= 403 (:status resp))))))
+        (testing "with authentication returns 200"
+          (let [resp (http-client/get "https://localhost:8180/status/v1/services" common-ssl-config)]
+            (is (= 200 (:status resp)))))))
+  (testing "with auth service running and cert auth disabled for endpoint"
+    (with-app-with-config
+      app
+      [jetty9-service/jetty9-service
+       webrouting-service/webrouting-service
+       scheduler-service/scheduler-service
+       status-service
+       foo-service
+       tk-auth/authorization-service]
+       (merge status-service-config
+         {:authorization {:version 1
+                          :rules [{:match-request
+                                   {:path "/status/v1/services"
+                                    :type "path"
+                                    :method "get"}
+                                   :sort-order 500
+                                   :allow-unauthenticated true
+                                   :name "puppetlabs status service"}]}})
+        (testing "returns 200 and latest status for all services"
+          (let [resp (http-client/get "http://localhost:8180/status/v1/services")
+                body (parse-response resp)]
+            (is (= 200 (:status resp)))
+            (is (= {"foo" {"service_version" "1.1.0"
+                           "service_status_version" 2
+                           "state" "running"
+                           "detail_level" "info"
+                           "active_alerts" decoded-alerts
+                           "status" "foo status 2 :info"}}
+                   (dissoc body "status-service"))))))))
 
 (deftest single-service-status-endpoint-test
   (with-status-service

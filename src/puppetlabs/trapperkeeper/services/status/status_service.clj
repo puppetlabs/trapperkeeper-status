@@ -1,9 +1,10 @@
 (ns puppetlabs.trapperkeeper.services.status.status-service
   (:require [clojure.tools.logging :as log]
             [puppetlabs.trapperkeeper.core :refer [defservice]]
-            [puppetlabs.trapperkeeper.services :refer [service-context]]
+            [puppetlabs.trapperkeeper.services :refer [service-context maybe-get-service]]
             [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
             [puppetlabs.trapperkeeper.services.status.status-debug-logging :as status-logging]
+            [puppetlabs.trapperkeeper.services.authorization.authorization-service :as tk-auth :refer [AuthorizationService]]
             [schema.core :as schema]
             [puppetlabs.i18n.core :as i18n]))
 
@@ -23,9 +24,10 @@
 
 (defservice status-service
   StatusService
-  [[:WebroutingService add-ring-handler get-route]
-   [:ConfigService get-in-config]
-   [:SchedulerService interspaced]]
+   {:required [[:WebroutingService add-ring-handler get-route]
+               [:ConfigService get-in-config]
+               [:SchedulerService interspaced]]
+    :optional [AuthorizationService]}
 
   (init [this context]
     (assoc context :status-fns (atom {})
@@ -49,7 +51,11 @@
                       (partial status-core/v1-status cpu-snapshot)))
          (log/info (i18n/trs "Registering status service HTTP API at /status"))
     (let [path (get-route this)
-          handler (status-core/build-handler path (deref (:status-fns context)))]
+          base-handler (status-core/build-handler path (deref (:status-fns context)))
+          ; The authorization service is an optional dependency, so it may not be here to use
+          handler (if-let [auth-svc (maybe-get-service this :AuthorizationService)]
+                    (tk-auth/wrap-with-authorization-check auth-svc base-handler)
+                    base-handler)]
       (add-ring-handler this handler))
     context)
 

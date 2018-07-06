@@ -1,4 +1,13 @@
+## 1.1.0
+
+This is a feature release.
+
+* [PE-24670](https://tickets.puppetlabs.com/browse/PE-24670) Add ability for
+  applications using trapperkeeper to require authentication for the status
+  endpoint.
+
 ## 1.0.0
+
 This is a feature release
 
 * [TK-460](https://tickets.puppetlabs.com/browse/TK-460)
