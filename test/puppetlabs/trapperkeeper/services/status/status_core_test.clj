@@ -115,7 +115,7 @@
         (is (= #{:jvm-metrics} (ks/keyset (get-in status [:status :experimental]))))
         (let [jvm-metrics (get-in status [:status :experimental :jvm-metrics])]
           (is (= #{:heap-memory :non-heap-memory :memory-pools
-                   :file-descriptors :threading :gc-stats
+                   :file-descriptors :nio-buffer-pools :threading :gc-stats
                    :up-time-ms :start-time-ms
                    :cpu-usage :gc-cpu-usage} (ks/keyset jvm-metrics)))
           (is (= #{:committed :init :max :used} (ks/keyset (:heap-memory jvm-metrics))))
@@ -124,6 +124,8 @@
           (is (every? #(< 0 %) (vals (:heap-memory jvm-metrics))))
           (is (every? #(or (< 0 %) (= -1 %)) (vals (:non-heap-memory jvm-metrics))))
           (is (= #{:max :used} (ks/keyset (:file-descriptors jvm-metrics))))
+          (is (= #{:count :memory-used :total-capacity}
+                 (ks/keyset (-> jvm-metrics :nio-buffer-pools first val))))
           (is (every? #(< 0 %) (vals (:file-descriptors jvm-metrics))))
           (is (contains? jvm-metrics :gc-stats))
           (is (< 0 (:up-time-ms jvm-metrics)))
