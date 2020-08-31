@@ -16,6 +16,7 @@
   (:import (java.net URL)
            (java.util.concurrent CancellationException)
            (java.lang.management ManagementFactory)
+           (javax.management ObjectName)
            (clojure.lang IFn)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -82,6 +83,11 @@
   {:max schema/Int
    :used schema/Int})
 
+(def NioBufferPoolStatsV1
+  {schema/Str {:count          schema/Int
+               :memory-used    schema/Int
+               :total-capacity schema/Int}})
+
 (def ThreadingV1
   {:thread-count schema/Int
    :peak-thread-count schema/Int})
@@ -91,10 +97,16 @@
                :total-time-ms schema/Int
                (schema/optional-key :last-gc-info) {:duration-ms schema/Int}}})
 
+(def MemoryPoolStatsV1
+  {schema/Str {:type schema/Str
+               :usage MemoryUsageV1}})
+
 (def JvmMetricsV1
   {:heap-memory MemoryUsageV1
    :non-heap-memory MemoryUsageV1
+   :memory-pools MemoryPoolStatsV1
    :file-descriptors FileDescriptorUsageV1
+   :nio-buffer-pools NioBufferPoolStatsV1
    :threading ThreadingV1
    :gc-stats GcStatsV1
    :up-time-ms WholeMilliseconds
@@ -184,15 +196,54 @@
       (assoc gc-info :last-gc-info {:duration-ms duration})
       gc-info)))
 
+(schema/defn read-memory-pool-info
+  "Reads information from a java.lang.management.MemoryPoolMXBean
+  and returns a hash."
+  [memory-pool :- ObjectName]
+  (let [pool-info (jmx/read memory-pool [:Type :Usage])]
+    (setutils/rename-keys pool-info
+                          {:Type :type
+                           :Usage :usage})))
+
+(schema/defn get-memory-pool-stats :- MemoryPoolStatsV1
+  "Reads MemoryPool statistics from JMX and returns a hash."
+  []
+  (let [memory-pool-beans (jmx/mbean-names "java.lang:name=*,type=MemoryPool")]
+    (into {} (for [pool memory-pool-beans]
+               (let [pool-name (.getKeyProperty pool "name")
+                     pool-info (read-memory-pool-info pool)]
+                 {pool-name pool-info})))))
+
+(schema/defn read-buffer-pool-info
+  "Reads information from a java.lang.management.BufferPoolMXBean
+  and returns a hash."
+  [buffer-pool :- ObjectName]
+  (let [pool-info (jmx/read buffer-pool [:Count :MemoryUsed :TotalCapacity])]
+    (setutils/rename-keys pool-info
+                          {:Count :count
+                           :MemoryUsed :memory-used
+                           :TotalCapacity :total-capacity})))
+
+(schema/defn get-nio-buffer-pool-stats :- NioBufferPoolStatsV1
+  "Reads BufferPool statistics from JMX and returns a hash."
+  []
+  (let [buffer-pool-beans (jmx/mbean-names "java.nio:name=*,type=BufferPool")]
+    (into {} (for [pool buffer-pool-beans]
+               (let [pool-name (.getKeyProperty pool "name")
+                     pool-info (read-buffer-pool-info pool)]
+                 {pool-name pool-info})))))
+
 (schema/defn ^:always-validate get-jvm-metrics :- JvmMetricsV1
   [cpu-snapshot :- cpu/CpuUsageSnapshot]
   (let [runtime-bean (ManagementFactory/getRuntimeMXBean)
         gc-beans (jmx/mbean-names "java.lang:name=*,type=GarbageCollector")]
     {:heap-memory (jmx/read "java.lang:type=Memory" :HeapMemoryUsage)
      :non-heap-memory (jmx/read "java.lang:type=Memory" :NonHeapMemoryUsage)
+     :memory-pools (get-memory-pool-stats)
      :file-descriptors (setutils/rename-keys
                         (jmx/read "java.lang:type=OperatingSystem" [:OpenFileDescriptorCount :MaxFileDescriptorCount])
                         {:OpenFileDescriptorCount :used :MaxFileDescriptorCount :max})
+     :nio-buffer-pools (get-nio-buffer-pool-stats)
      :threading (setutils/rename-keys
                   (jmx/read "java.lang:type=Threading"
                             [:ThreadCount :PeakThreadCount])
