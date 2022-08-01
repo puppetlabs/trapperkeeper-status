@@ -16,6 +16,7 @@
   :dependencies [[org.clojure/clojure]
 
                  [cheshire]
+                 [org.tcrawley/dynapath "1.0.0"]
                  [slingshot]
                  [prismatic/schema]
                  [trptcolin/versioneer]
