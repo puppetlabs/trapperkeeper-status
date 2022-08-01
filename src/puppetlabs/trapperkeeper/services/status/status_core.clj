@@ -19,6 +19,9 @@
            (javax.management ObjectName)
            (clojure.lang IFn)))
 
+
+(set! *warn-on-reflection* true)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
 
@@ -167,7 +170,7 @@
                         (i18n/tru "Cannot register multiple callbacks for a single service with different service versions.")
                         (i18n/tru "Service function already exists for service {0} with status version {1}" svc-name status-version))]
     (when (or differing-svc-version? differing-status-version?)
-      (throw (IllegalStateException. error-message)))))
+      (throw (IllegalStateException. ^String error-message)))))
 
 (defn validate-protocol!
   "Throws if the protocol is not http or https"
@@ -209,7 +212,7 @@
   []
   (let [memory-pool-beans (jmx/mbean-names "java.lang:name=*,type=MemoryPool")]
     (into {} (for [pool memory-pool-beans]
-               (let [pool-name (.getKeyProperty pool "name")
+               (let [pool-name (.getKeyProperty ^ObjectName pool "name")
                      pool-info (read-memory-pool-info pool)]
                  {pool-name pool-info})))))
 
@@ -228,7 +231,7 @@
   []
   (let [buffer-pool-beans (jmx/mbean-names "java.nio:name=*,type=BufferPool")]
     (into {} (for [pool buffer-pool-beans]
-               (let [pool-name (.getKeyProperty pool "name")
+               (let [pool-name (.getKeyProperty ^ObjectName pool "name")
                      pool-info (read-buffer-pool-info pool)]
                  {pool-name pool-info})))))
 
@@ -249,7 +252,7 @@
                   {:ThreadCount :thread-count
                    :PeakThreadCount :peak-thread-count})
      :gc-stats (into {} (for [gc gc-beans]
-                          (let [gc-name (.getKeyProperty gc "name")
+                          (let [gc-name (.getKeyProperty ^ObjectName gc "name")
                                 gc-info (read-gc-info gc)]
                             {gc-name gc-info})))
      :cpu-usage (:cpu-usage cpu-snapshot)
@@ -305,10 +308,10 @@
   [group-id artifact-id]
   (let [version (versioneer/get-version group-id artifact-id)]
     (when (empty? version)
-      (throw (IllegalStateException.
-               (i18n/tru "Unable to find version number for ''{0}/{1}''"
-                 group-id
-                 artifact-id))))
+      (let [^String msg (i18n/tru "Unable to find version number for ''{0}/{1}''"
+                                  group-id
+                                  artifact-id)]
+        (throw (IllegalStateException. msg))))
     version))
 
 (def status-service-version
