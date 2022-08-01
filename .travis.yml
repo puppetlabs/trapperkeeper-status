@@ -1,8 +1,8 @@
 language: clojure
 lein: 2.9.1
-dist: bionic
+dist: focal
 jdk:
-  - openjdk8
+  - openjdk11
 script: ./ext/travisci/test.sh
 notifications:
   email: false
