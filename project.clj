@@ -36,7 +36,8 @@
                                      :password :env/clojars_jenkins_password
                                      :sign-releases false}]]
 
-  :profiles {:dev {:dependencies [[puppetlabs/http-client]
+  :profiles {:dev {:dependencies [[org.bouncycastle/bcpkix-jdk15on]
+                                  [puppetlabs/http-client]
                                   [puppetlabs/trapperkeeper :classifier "test"]
                                   [puppetlabs/trapperkeeper-webserver-jetty9]
                                   [puppetlabs/kitchensink :classifier "test"]]}}
