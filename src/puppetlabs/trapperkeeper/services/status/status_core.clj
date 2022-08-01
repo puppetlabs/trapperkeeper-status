@@ -13,7 +13,7 @@
             [trptcolin.versioneer.core :as versioneer]
             [clojure.java.jmx :as jmx]
             [puppetlabs.i18n.core :as i18n])
-  (:import (java.net URL)
+  (:import (java.net URI)
            (java.util.concurrent CancellationException)
            (java.lang.management ManagementFactory)
            (javax.management ObjectName)
@@ -171,14 +171,13 @@
 
 (defn validate-protocol!
   "Throws if the protocol is not http or https"
-  [url]
-  (let [protocol (.getProtocol url)
-        url-string (str url)]
-    (if-not (contains? #{"http" "https"} protocol)
-      (throw (IllegalArgumentException.
-              (i18n/tru "The proxy-target-url ''{0}'' has an unsupported protocol ''{1}''. Must be either http or https"
-                        url-string
-                        protocol))))))
+  [^URI uri]
+  (let [protocol (.getScheme uri)]
+    (when-not (#{"http" "https"} protocol)
+      (let [^String msg (i18n/tru "The proxy-target-url ''{0}'' has an unsupported protocol ''{1}''. Must be either http or https"
+                                  (str uri)
+                                  protocol)]
+        (throw (IllegalArgumentException. msg))))))
 
 (defn- read-gc-info
   "Reads information from a java.lang.management.GarbageCollectorMXBean
@@ -635,15 +634,11 @@
     proxy-target: target host, port, and path
     proxy-options: SSL options for the proxy target"
   [status-proxy-config :- StatusProxyConfig]
-  (let [target-url (URL. (status-proxy-config :proxy-target-url))
-        host (.getHost target-url)
-        port (.getPort target-url)
-        path (.getPath target-url)
-        protocol (.getProtocol target-url)
+  (let [target-uri (URI. (status-proxy-config :proxy-target-url))
         ssl-opts (status-proxy-config :ssl-opts)]
-    (validate-protocol! target-url)
-    {:proxy-target {:host host
-                    :port port
-                    :path path}
+    (validate-protocol! target-uri)
+    {:proxy-target {:host (.getHost target-uri)
+                    :port (.getPort target-uri)
+                    :path (.getPath target-uri)}
      :proxy-options {:ssl-config ssl-opts
-                     :scheme (keyword protocol)}}))
+                     :scheme (-> target-uri .getScheme keyword)}}))
