@@ -13,11 +13,14 @@
             [trptcolin.versioneer.core :as versioneer]
             [clojure.java.jmx :as jmx]
             [puppetlabs.i18n.core :as i18n])
-  (:import (java.net URL)
+  (:import (java.net URI)
            (java.util.concurrent CancellationException)
            (java.lang.management ManagementFactory)
            (javax.management ObjectName)
            (clojure.lang IFn)))
+
+
+(set! *warn-on-reflection* true)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Schemas
@@ -167,18 +170,17 @@
                         (i18n/tru "Cannot register multiple callbacks for a single service with different service versions.")
                         (i18n/tru "Service function already exists for service {0} with status version {1}" svc-name status-version))]
     (when (or differing-svc-version? differing-status-version?)
-      (throw (IllegalStateException. error-message)))))
+      (throw (IllegalStateException. ^String error-message)))))
 
 (defn validate-protocol!
   "Throws if the protocol is not http or https"
-  [url]
-  (let [protocol (.getProtocol url)
-        url-string (str url)]
-    (if-not (contains? #{"http" "https"} protocol)
-      (throw (IllegalArgumentException.
-              (i18n/tru "The proxy-target-url ''{0}'' has an unsupported protocol ''{1}''. Must be either http or https"
-                        url-string
-                        protocol))))))
+  [^URI uri]
+  (let [protocol (.getScheme uri)]
+    (when-not (#{"http" "https"} protocol)
+      (let [^String msg (i18n/tru "The proxy-target-url ''{0}'' has an unsupported protocol ''{1}''. Must be either http or https"
+                                  (str uri)
+                                  protocol)]
+        (throw (IllegalArgumentException. msg))))))
 
 (defn- read-gc-info
   "Reads information from a java.lang.management.GarbageCollectorMXBean
@@ -210,7 +212,7 @@
   []
   (let [memory-pool-beans (jmx/mbean-names "java.lang:name=*,type=MemoryPool")]
     (into {} (for [pool memory-pool-beans]
-               (let [pool-name (.getKeyProperty pool "name")
+               (let [pool-name (.getKeyProperty ^ObjectName pool "name")
                      pool-info (read-memory-pool-info pool)]
                  {pool-name pool-info})))))
 
@@ -229,7 +231,7 @@
   []
   (let [buffer-pool-beans (jmx/mbean-names "java.nio:name=*,type=BufferPool")]
     (into {} (for [pool buffer-pool-beans]
-               (let [pool-name (.getKeyProperty pool "name")
+               (let [pool-name (.getKeyProperty ^ObjectName pool "name")
                      pool-info (read-buffer-pool-info pool)]
                  {pool-name pool-info})))))
 
@@ -250,7 +252,7 @@
                   {:ThreadCount :thread-count
                    :PeakThreadCount :peak-thread-count})
      :gc-stats (into {} (for [gc gc-beans]
-                          (let [gc-name (.getKeyProperty gc "name")
+                          (let [gc-name (.getKeyProperty ^ObjectName gc "name")
                                 gc-info (read-gc-info gc)]
                             {gc-name gc-info})))
      :cpu-usage (:cpu-usage cpu-snapshot)
@@ -306,10 +308,10 @@
   [group-id artifact-id]
   (let [version (versioneer/get-version group-id artifact-id)]
     (when (empty? version)
-      (throw (IllegalStateException.
-               (i18n/tru "Unable to find version number for ''{0}/{1}''"
-                 group-id
-                 artifact-id))))
+      (let [^String msg (i18n/tru "Unable to find version number for ''{0}/{1}''"
+                                  group-id
+                                  artifact-id)]
+        (throw (IllegalStateException. msg))))
     version))
 
 (def status-service-version
@@ -635,15 +637,11 @@
     proxy-target: target host, port, and path
     proxy-options: SSL options for the proxy target"
   [status-proxy-config :- StatusProxyConfig]
-  (let [target-url (URL. (status-proxy-config :proxy-target-url))
-        host (.getHost target-url)
-        port (.getPort target-url)
-        path (.getPath target-url)
-        protocol (.getProtocol target-url)
+  (let [target-uri (URI. (status-proxy-config :proxy-target-url))
         ssl-opts (status-proxy-config :ssl-opts)]
-    (validate-protocol! target-url)
-    {:proxy-target {:host host
-                    :port port
-                    :path path}
+    (validate-protocol! target-uri)
+    {:proxy-target {:host (.getHost target-uri)
+                    :port (.getPort target-uri)
+                    :path (.getPath target-uri)}
      :proxy-options {:ssl-config ssl-opts
-                     :scheme (keyword protocol)}}))
+                     :scheme (-> target-uri .getScheme keyword)}}))
