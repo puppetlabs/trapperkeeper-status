@@ -1,18 +1,21 @@
 (ns puppetlabs.trapperkeeper.services.status.status-core
-  (:require [clojure.tools.logging :as log]
+  (:require [clojure.java.jmx :as jmx]
             [clojure.set :as setutils]
+            [clojure.tools.logging :as log]
+            [puppetlabs.comidi :as comidi]
+            [puppetlabs.i18n.core :as i18n]
+            [puppetlabs.kitchensink.core :as ks]
+            [puppetlabs.ring-middleware.core :as middleware]
+            [puppetlabs.ring-middleware.utils :as ringutils]
+            [puppetlabs.trapperkeeper.services.status.cpu-monitor :as cpu]
+            [ring.middleware.content-type :as ring-content-type]
+            [ring.middleware.keyword-params :as ring-keyword-params]
+            [ring.middleware.not-modified :as ring-not-modified]
+            [ring.middleware.params :as ring-params]
             [schema.core :as schema]
             [schema.utils :refer [validation-error-explain]]
-            [ring.middleware.defaults :as ring-defaults]
             [slingshot.slingshot :refer [throw+]]
-            [puppetlabs.comidi :as comidi]
-            [puppetlabs.kitchensink.core :as ks]
-            [puppetlabs.ring-middleware.utils :as ringutils]
-            [puppetlabs.ring-middleware.core :as middleware]
-            [puppetlabs.trapperkeeper.services.status.cpu-monitor :as cpu]
-            [trptcolin.versioneer.core :as versioneer]
-            [clojure.java.jmx :as jmx]
-            [puppetlabs.i18n.core :as i18n])
+            [trptcolin.versioneer.core :as versioneer])
   (:import (java.net URL)
            (java.util.concurrent CancellationException)
            (java.lang.management ManagementFactory)
@@ -593,16 +596,27 @@
         (middleware/wrap-schema-errors t)
         (middleware/wrap-uncaught-errors t))))
 
+(schema/defn ^:always-validate default-middleware
+  []
+  (fn [handler]
+    (-> handler
+        (ring-keyword-params/wrap-keyword-params {:parse-namespaces? true})
+        (ring-params/wrap-params)
+        (ring-not-modified/wrap-not-modified)
+        (ring-content-type/wrap-content-type))))
+
 (defn build-handler [path status-fns]
   (comidi/routes->handler
    (comidi/wrap-routes
     (comidi/context path
       (comidi/context "/v1"
         (-> (build-json-routes "/services" status-fns)
-            (comidi/wrap-routes (errors-by-type-middleware :json)))
+            (comidi/wrap-routes (errors-by-type-middleware :json))
+            (comidi/wrap-routes (default-middleware)))
         (-> (build-plaintext-routes "/simple" status-fns)
-            (comidi/wrap-routes (errors-by-type-middleware :plain)))))
-    #(i18n/locale-negotiator (ring-defaults/wrap-defaults % ring-defaults/api-defaults)))))
+            (comidi/wrap-routes (errors-by-type-middleware :plain))
+            (comidi/wrap-routes (default-middleware)))))
+    i18n/locale-negotiator)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Status Service Status
