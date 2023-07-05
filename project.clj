@@ -4,9 +4,9 @@
   :license {:name "Apache License, Version 2.0"
             :url "http://www.apache.org/licenses/LICENSE-2.0"}
 
-  :min-lein-version "2.7.1"
+  :min-lein-version "2.9.0"
 
-  :parent-project {:coords [puppetlabs/clj-parent "1.7.38"]
+  :parent-project {:coords [puppetlabs/clj-parent "6.0.1"]
                    :inherit [:managed-dependencies]}
 
   :pedantic? :abort
@@ -36,7 +36,8 @@
                                      :password :env/clojars_jenkins_password
                                      :sign-releases false}]]
 
-  :profiles {:dev {:dependencies [[puppetlabs/http-client]
+  :profiles {:dev {:dependencies [[org.bouncycastle/bcpkix-jdk18on]
+                                  [puppetlabs/http-client]
                                   [puppetlabs/trapperkeeper :classifier "test"]
                                   [puppetlabs/trapperkeeper-webserver-jetty9]
                                   [puppetlabs/kitchensink :classifier "test"]]}}
