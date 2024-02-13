@@ -11,7 +11,7 @@
             [puppetlabs.trapperkeeper.services.status.status-core :as status-core]
             [puppetlabs.trapperkeeper.services.webrouting.webrouting-service :as webrouting-service]
             [puppetlabs.trapperkeeper.services.authorization.authorization-service :as tk-auth]
-            [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9-service]
+            [puppetlabs.trapperkeeper.services.webserver.jetty10-service :as jetty10-service]
             [puppetlabs.trapperkeeper.services.scheduler.scheduler-service :as scheduler-service]
             [puppetlabs.kitchensink.core :as ks]))
 
@@ -47,13 +47,13 @@
   (:status (parse-response resp true)))
 
 (defmacro with-status-service-with-config
-  "Macro to start the status service and its dependencies (jetty9 and
+  "Macro to start the status service and its dependencies (jetty10 and
   webrouting service), along with any other services desired, with the given
   config"
   [app services config & body]
   `(with-app-with-config
      ~app
-     (concat [jetty9-service/jetty9-service
+     (concat [jetty10-service/jetty10-service
               webrouting-service/webrouting-service
               scheduler-service/scheduler-service
               status-service] ~services)
@@ -61,7 +61,7 @@
      (do ~@body)))
 
 (defmacro with-status-service
-  "Macro to start the status service and its dependencies (jetty9 and
+  "Macro to start the status service and its dependencies (jetty10 and
   webrouting service), along with any other services desired. Provides
   a default tk config"
   [app services & body]
@@ -126,7 +126,7 @@
 
 (deftest get-status-test
   (with-status-service app [foo-service
-                            jetty9-service/jetty9-service
+                            jetty10-service/jetty10-service
                             webrouting-service/webrouting-service
                             status-service]
     (let [svc (get-service app :StatusService)]
@@ -198,7 +198,7 @@
   (testing "can mount status endpoint at alternate location"
     (with-app-with-config
       app
-      [jetty9-service/jetty9-service
+      [jetty10-service/jetty10-service
        webrouting-service/webrouting-service
        scheduler-service/scheduler-service
        status-service]
@@ -211,7 +211,7 @@
   (testing "with auth service running and cert auth enabled for endpoint"
     (with-app-with-config
       app
-      [jetty9-service/jetty9-service
+      [jetty10-service/jetty10-service
        webrouting-service/webrouting-service
        scheduler-service/scheduler-service
        status-service
@@ -236,7 +236,7 @@
   (testing "with auth service running and cert auth disabled for endpoint"
     (with-app-with-config
       app
-      [jetty9-service/jetty9-service
+      [jetty10-service/jetty10-service
        webrouting-service/webrouting-service
        scheduler-service/scheduler-service
        status-service
