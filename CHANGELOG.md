@@ -1,3 +1,8 @@
+## 1.2.0
+* update to clj-parent 7.3.7, and change test dependency to jetty 10.
+* remove unused ring-defaults dependency
+* update codeowners
+
 ## 1.1.0
 
 This is a feature release.
