@@ -10,7 +10,7 @@
     [puppetlabs.trapperkeeper.services.status.status-proxy-service :refer [status-proxy-service]]
     [puppetlabs.trapperkeeper.services.webrouting.webrouting-service :as webrouting-service]
     [puppetlabs.trapperkeeper.services.scheduler.scheduler-service :as scheduler-service]
-    [puppetlabs.trapperkeeper.services.webserver.jetty9-service :as jetty9-service]))
+    [puppetlabs.trapperkeeper.services.webserver.jetty10-service :as jetty10-service]))
 
 (use-fixtures :once schema-test/validate-schemas)
 
@@ -55,7 +55,7 @@
     ; Start status service
     (with-app-with-config
       status-app
-      [jetty9-service/jetty9-service
+      [jetty10-service/jetty10-service
        webrouting-service/webrouting-service
        status-service
        foo-service
@@ -65,7 +65,7 @@
       ; Start the proxy service
       (with-app-with-config
         proxy-app
-        [jetty9-service/jetty9-service
+        [jetty10-service/jetty10-service
          webrouting-service/webrouting-service
          status-proxy-service]
         status-proxy-service-config
@@ -149,7 +149,7 @@
       (with-app-with-config
         ; Start status service
         status-app
-        [jetty9-service/jetty9-service
+        [jetty10-service/jetty10-service
          webrouting-service/webrouting-service
          status-service
          scheduler-service/scheduler-service
@@ -158,7 +158,7 @@
         ; Start the proxy service
         (with-app-with-config
           proxy-app
-          [jetty9-service/jetty9-service
+          [jetty10-service/jetty10-service
            webrouting-service/webrouting-service
            status-proxy-service]
           status-proxy-service-config
@@ -182,7 +182,7 @@
             (with-test-logging
               (with-app-with-config
                 proxy-app
-                [jetty9-service/jetty9-service
+                [jetty10-service/jetty10-service
                  webrouting-service/webrouting-service
                  status-proxy-service]
                 bad-config))))))
@@ -197,7 +197,7 @@
             (with-test-logging
               (with-app-with-config
                 proxy-app
-                [jetty9-service/jetty9-service
+                [jetty10-service/jetty10-service
                  webrouting-service/webrouting-service
                  status-proxy-service]
                 bad-config))))))
@@ -212,7 +212,7 @@
             (with-test-logging
               (with-app-with-config
                 proxy-app
-                [jetty9-service/jetty9-service
+                [jetty10-service/jetty10-service
                  webrouting-service/webrouting-service
                  status-proxy-service]
                 bad-config)))))))
